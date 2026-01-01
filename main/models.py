@@ -368,6 +368,11 @@ class User(AbstractUser):
         """Check if user is a student"""
         return self.user_type == 'STUDENT'
 
+    @property
+    def role(self):
+        """Return user_type as lowercase role for API compatibility"""
+        return self.user_type.lower() if self.user_type else None
+
 
 class UserProfile(BaseModel):
     """

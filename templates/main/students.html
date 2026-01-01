@@ -1,0 +1,94 @@
+{% extends 'main/layout.html' %}
+{% load static %}
+
+{% block page_title %}Students{% endblock %}
+
+{% block content %}
+<!-- Filter Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter"></i> Filter Students
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="studentFilterForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="branchFilter" class="form-label">Branch</label>
+                            <select class="form-select" id="branchFilter" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="classFilter" class="form-label">Class</label>
+                            <select class="form-select" id="classFilter" name="class">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="divisionFilter" class="form-label">Division</label>
+                            <select class="form-select" id="divisionFilter" name="division">
+                                <option value="">All Divisions</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter" name="status">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="searchQuery" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchQuery" name="search"
+                                   placeholder="Search by name, admission number, or parent mobile...">
+                        </div>
+
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Apply Filters
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearFilters">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Students Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="studentsTable">
+                    <!-- DataTable will be rendered here by students.js -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading students...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/students.js' %}"></script>
+{% endblock %}

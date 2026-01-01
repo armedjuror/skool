@@ -8,7 +8,7 @@
         <div class="sidebar-header">
             <div class="brand-logo">
                 <i class="fas fa-mosque"></i>
-                <span class="brand-text">KIC Madrassa</span>
+                <span class="brand-text">{{ organization.name }}</span>
             </div>
             <button class="sidebar-toggle d-lg-none" id="sidebarToggle">
                 <i class="fas fa-times"></i>
@@ -28,7 +28,7 @@
         <nav class="sidebar-nav">
             <ul class="nav-list">
                 <li class="nav-item">
-                    <a href="/dashboard" class="nav-link" data-page="dashboard">
+                    <a href="{% url 'dashboard' org_code %}" class="nav-link" data-page="dashboard">
                         <i class="fas fa-home"></i>
                         <span>Dashboard</span>
                     </a>
@@ -36,7 +36,7 @@
 
                 <!-- Admin & Head Teacher Menu -->
                 <li class="nav-item admin-only head-teacher-only">
-                    <a href="/students" class="nav-link" data-page="students">
+                    <a href="{% url 'students-list' org_code %}" class="nav-link" data-page="students">
                         <i class="fas fa-user-graduate"></i>
                         <span>Students</span>
                     </a>

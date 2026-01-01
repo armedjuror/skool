@@ -32,12 +32,13 @@ $(document).ready(function() {
             });
 
             // Store auth token
-            Utils.storage.set('auth_token', response.token);
-            Utils.storage.set('user_role', response.user.role);
-            Utils.storage.set('user_name', response.user.name);
-            Utils.storage.set('user_id', response.user.id);
+            const { token, user } = response.data;
+            Utils.storage.set('auth_token', token);
+            Utils.storage.set('user_role', user.role);
+            Utils.storage.set('user_name', `${user.first_name} ${user.last_name}`.trim());
+            Utils.storage.set('user_id', user.id);
 
-            Utils.showToast('Login successful! Redirecting...', 'success');
+            Utils.showToast(response.message || 'Login successful! Redirecting...', 'success');
 
             // Redirect to dashboard
             setTimeout(() => {
