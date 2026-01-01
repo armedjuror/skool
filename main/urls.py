@@ -1,6 +1,6 @@
 from django.urls import path
 
-from main.views import login
+from main.views.web import login
 
 urlpatterns = [
     path('<str:org_code>/login/', login, name='login'),
