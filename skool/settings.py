@@ -154,7 +154,14 @@ STATIC_URL = os.getenv('STATIC_URL', 'static/')
 STATIC_ROOT = os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# Media files (User uploaded content)
+MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
+MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media'))
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'main.User'

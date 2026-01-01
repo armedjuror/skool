@@ -1,0 +1,155 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Login - Kerala Islamic Centre{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+        padding: 2rem 1rem;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 450px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--primary-main) 0%, var(--primary-light) 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        text-align: center;
+    }
+
+    .login-header .brand-icon {
+        font-size: 3rem;
+        color: var(--accent-gold);
+        margin-bottom: 1rem;
+    }
+
+    .login-header h2 {
+        color: white;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+    }
+
+    .login-header p {
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    .login-body {
+        padding: 2.5rem 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .input-group-icon {
+        position: relative;
+    }
+
+    .input-group-icon i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    .input-group-icon input {
+        padding-left: 2.75rem;
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 0.875rem;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-top: 1rem;
+    }
+
+    .login-footer {
+        text-align: center;
+        padding: 1.5rem 2rem;
+        background: var(--gray-50);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .login-footer a {
+        color: var(--primary-main);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-wrapper">
+    {% if error %}
+        <h2>{{ error }}</h2>
+    {% else %}
+    <div class="login-card">
+            <div class="login-header">
+                <div class="brand-icon">
+                    {% if organization.logo %}
+                        <img src="{{ organization.logo.url }}" alt="Logo">
+                    {% else %}
+                        <i class="fas fa-building"></i>
+                    {% endif %}
+                </div>
+                <h2>{{ organization.name }}</h2>
+            </div>
+            <div class="login-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-group-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   placeholder="Enter your email" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="Enter your password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                        <label class="form-check-label" for="rememberMe">
+                            Remember me
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i> Sign In
+                    </button>
+                </form>
+            </div>
+
+            <div class="login-footer">
+                <a href="#" id="forgotPasswordLink">Forgot your password?</a>
+            </div>
+    </div>
+        {% endif %}
+
+</div>
+
+<script src="{% static 'js/login.js' %}"></script>
+{% endblock %}

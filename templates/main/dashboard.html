@@ -1,0 +1,152 @@
+{% extends 'main/layout.html' %}
+{% load static %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stats-card">
+            <div class="stats-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stats-value" id="totalStudents">0</div>
+            <div class="stats-label">Total Students</div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stats-card success">
+            <div class="stats-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stats-value" id="totalStaff">0</div>
+            <div class="stats-label">Total Staff</div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stats-card warning">
+            <div class="stats-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stats-value" id="pendingRegistrations">0</div>
+            <div class="stats-label">Pending Registrations</div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stats-card info">
+            <div class="stats-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stats-value" id="monthlyCollection">QAR 0</div>
+            <div class="stats-label">This Month Collection</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions (Admin & Head Teacher Only) -->
+<div class="row mb-4 admin-only head-teacher-only">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <div class="quick-action-card" onclick="window.location.href='/students'">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="quick-action-label">Add Student</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="window.location.href='/staff'">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="quick-action-label">Add Staff</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="window.location.href='/fees'">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-cash-register"></i>
+                        </div>
+                        <div class="quick-action-label">Collect Fee</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="window.location.href='/attendance'">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="quick-action-label">Mark Attendance</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Row -->
+<div class="row">
+    <!-- Recent Activities -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activities</h5>
+            </div>
+            <div class="card-body">
+                <div id="recentActivities">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Today's Attendance</h5>
+            </div>
+            <div class="card-body">
+                <div id="attendanceSummary">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fee Due Summary (Admin & Head Teacher Only) -->
+<div class="row admin-only head-teacher-only">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Fee Due Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="feeDueSummary">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}
