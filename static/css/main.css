@@ -172,6 +172,7 @@ a:hover {
     font-weight: 600;
     margin-bottom: 0.25rem;
     color: var(--text-white);
+    text-transform: uppercase;
 }
 
 .user-role {
@@ -498,7 +499,7 @@ a:hover {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 100;
 }
 
 .loader-overlay.active {

@@ -102,7 +102,6 @@ class Branch(BaseModel):
     address = models.JSONField(default=dict, blank=True)
 
     # Contact Information
-    contact_person = models.CharField(max_length=200, null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
 
@@ -193,17 +192,16 @@ class Class(BaseModel):
     level = models.IntegerField(
         help_text="Arabic numeral: 1, 2,...., 11, 12"
     )
-    display_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'classes'
         verbose_name_plural = 'Classes'
-        ordering = ['organization', 'display_order', 'name']
+        ordering = ['organization', 'level', 'name']
         unique_together = [('organization', 'name')]
         indexes = [
             models.Index(fields=['organization', 'is_active']),
-            models.Index(fields=['display_order']),
+            models.Index(fields=['level']),
         ]
 
     def __str__(self):

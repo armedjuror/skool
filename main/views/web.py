@@ -55,7 +55,6 @@ def login_view(request, org_code):
 
     # Get redirect URL from query params (for redirecting after login)
     next_url = request.GET.get('next', f'/{org_code}/dashboard/')
-
     context = {
         'organization': organization,
         'org_code': org_code,
@@ -66,7 +65,7 @@ def login_view(request, org_code):
     return render(request, 'main/login.html', context)
 
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET"])
 def logout_view(request, org_code):
     """
     Logout user and redirect to login page
@@ -186,7 +185,7 @@ def dashboard_view(request, org_code):
     classes = Class.objects.filter(
         organization=organization,
         is_active=True
-    ).order_by('display_order', 'name')
+    ).order_by('level', 'name')
 
     divisions = Division.objects.filter(
         organization=organization,
@@ -246,7 +245,7 @@ def students_list_view(request, org_code):
     classes = Class.objects.filter(
         organization=organization,
         is_active=True
-    ).order_by('display_order', 'name')
+    ).order_by('level', 'name')
 
     divisions = Division.objects.filter(
         organization=organization,
@@ -301,7 +300,7 @@ def pending_registrations_view(request, org_code):
     classes = Class.objects.filter(
         organization=organization,
         is_active=True
-    ).order_by('display_order', 'name')
+    ).order_by('level', 'name')
 
     context = {
         'organization': organization,
@@ -352,7 +351,7 @@ def student_registration_form_view(request, org_code=None):
     classes = Class.objects.filter(
         organization=organization,
         is_active=True
-    ).order_by('display_order', 'name')
+    ).order_by('level', 'name')
 
     context = {
         'organization': organization,
@@ -363,3 +362,218 @@ def student_registration_form_view(request, org_code=None):
     }
 
     return render(request, 'main/student_registration.html', context)
+
+def settings_view(request, org_code):
+    """
+    Settings page
+
+    URL: /<org_code>/settings/
+    Template: main/settings.html
+    """
+    if not request.user.is_authenticated:
+        return redirect('login', org_code=org_code)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    if request.user.organization != organization:
+        return redirect('login', org_code=org_code)
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'user': request.user,
+        'page_title': f'Settings - {organization.name}',
+    }
+
+    return render(request, 'main/settings.html', context)
+
+
+def staff_list_view(request, org_code):
+    """
+    Staff management page
+
+    URL: /<org_code>/staff/
+    Template: main/staff.html
+    """
+    from main.models import Branch
+
+    if not request.user.is_authenticated:
+        return redirect('login', org_code=org_code)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    if request.user.organization != organization:
+        return redirect('login', org_code=org_code)
+
+    branches = Branch.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('name')
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'user': request.user,
+        'branches': branches,
+        'page_title': f'Staff Management - {organization.name}',
+    }
+
+    return render(request, 'main/staff.html', context)
+
+
+def fees_view(request, org_code):
+    """
+    Fee management page
+
+    URL: /<org_code>/fees/
+    Template: main/fees.html
+    """
+    from main.models import Branch, Class
+
+    if not request.user.is_authenticated:
+        return redirect('login', org_code=org_code)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    if request.user.organization != organization:
+        return redirect('login', org_code=org_code)
+
+    branches = Branch.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('name')
+
+    classes = Class.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('level', 'name')
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'user': request.user,
+        'branches': branches,
+        'classes': classes,
+        'page_title': f'Fee Management - {organization.name}',
+    }
+
+    return render(request, 'main/fees.html', context)
+
+
+def attendance_view(request, org_code):
+    """
+    Attendance management page
+
+    URL: /<org_code>/attendance/
+    Template: main/attendance.html
+    """
+    from main.models import Branch, Class, Division
+
+    if not request.user.is_authenticated:
+        return redirect('login', org_code=org_code)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    if request.user.organization != organization:
+        return redirect('login', org_code=org_code)
+
+    branches = Branch.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('name')
+
+    classes = Class.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('level', 'name')
+
+    divisions = Division.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('name')
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'user': request.user,
+        'branches': branches,
+        'classes': classes,
+        'divisions': divisions,
+        'page_title': f'Attendance - {organization.name}',
+    }
+
+    return render(request, 'main/attendance.html', context)
+
+
+def reports_view(request, org_code):
+    """
+    Reports page
+
+    URL: /<org_code>/reports/
+    Template: main/reports.html
+    """
+    from main.models import Branch, Class
+
+    if not request.user.is_authenticated:
+        return redirect('login', org_code=org_code)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    if request.user.organization != organization:
+        return redirect('login', org_code=org_code)
+
+    branches = Branch.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('name')
+
+    classes = Class.objects.filter(
+        organization=organization,
+        is_active=True
+    ).order_by('level', 'name')
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'user': request.user,
+        'branches': branches,
+        'classes': classes,
+        'page_title': f'Reports - {organization.name}',
+    }
+
+    return render(request, 'main/reports.html', context)

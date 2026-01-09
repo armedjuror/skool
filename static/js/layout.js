@@ -10,7 +10,7 @@ $(document).ready(function() {
 
 const Layout = {
     init: function() {
-        this.loadUserInfo();
+        // this.loadUserInfo();
         this.setupSidebarToggle();
         this.setupNavigation();
         this.setupLogout();
@@ -21,31 +21,33 @@ const Layout = {
     /**
      * Load user information
      */
-    loadUserInfo: async function() {
-        try {
-            const response = await $.ajax({
-                url: API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.GET_USER_INFO),
-                method: 'GET',
-                headers: API_CONFIG.getHeaders()
-            });
-
-            $('#userName').text(response.name || 'User');
-            $('#userRole').text(response.role_display || response.role || 'User');
-
-            // Store user info
-            Utils.storage.set('user_role', response.role);
-            Utils.storage.set('user_name', response.name);
-            Utils.storage.set('user_id', response.id);
-
-        } catch (error) {
-            console.error('Failed to load user info:', error);
-
-            // If unauthorized, redirect to login
-            if (error.status === 401) {
-                window.location.href = '/login';
-            }
-        }
-    },
+    // loadUserInfo: async function() {
+    //     try {
+    //         const response = await $.ajax({
+    //             url: API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.GET_USER_INFO),
+    //             method: 'GET',
+    //             headers: API_CONFIG.getHeaders()
+    //         });
+    //
+    //         $('#userName').text(response.name || 'User');
+    //         $('#userRole').text(response.role_display || response.role || 'User');
+    //
+    //         // Store user info
+    //         Utils.storage.set('user_role', response.role);
+    //         Utils.storage.set('user_name', response.name);
+    //         Utils.storage.set('user_id', response.id);
+    //
+    //     } catch (error) {
+    //         console.error('Failed to load user info:', error);
+    //
+    //         // If unauthorized, redirect to login
+    //         if (error.status === 401) {
+    //             const orgCode = Utils.storage.get('org_code');
+    //             Utils.storage.clear();  // Clear invalid session data
+    //             window.location.href = orgCode ? `/${orgCode}/login/` : '/';
+    //         }
+    //     }
+    // },
 
     /**
      * Setup sidebar toggle for mobile
@@ -106,6 +108,9 @@ const Layout = {
             Utils.confirm('Are you sure you want to logout?', async function() {
                 Utils.showLoader();
 
+                // Get org_code before clearing storage
+                const orgCode = Utils.storage.get('org_code');
+
                 try {
                     await $.ajax({
                         url: API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.LOGOUT),
@@ -115,11 +120,11 @@ const Layout = {
                 } catch (error) {
                     console.error('Logout error:', error);
                 } finally {
-                    // Clear local storage
+                    // Clear local storage (this removes token + all user data)
                     Utils.storage.clear();
 
-                    // Redirect to login
-                    window.location.href = '/login';
+                    // Redirect to org-specific login page
+                    window.location.href = orgCode ? `/${orgCode}/login/` : '/';
                 }
             });
         });

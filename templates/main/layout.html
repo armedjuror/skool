@@ -20,8 +20,8 @@
                 <i class="fas fa-user-circle"></i>
             </div>
             <div class="user-info">
-                <h6 class="user-name" id="userName">Loading...</h6>
-                <span class="user-role" id="userRole">Loading...</span>
+                <h6 class="user-name" id="userName">{{ user.first_name }} {{ user.last_name }}</h6>
+                <span class="user-role" id="userRole">{{ user.user_type }}</span>
             </div>
         </div>
 
@@ -43,7 +43,7 @@
                 </li>
 
                 <li class="nav-item admin-only head-teacher-only">
-                    <a href="/registrations" class="nav-link" data-page="registrations">
+                    <a href="{% url 'pending-registrations' org_code %}" class="nav-link" data-page="registrations">
                         <i class="fas fa-clipboard-list"></i>
                         <span>Registrations</span>
                         <span class="badge bg-danger" id="pendingCount">0</span>
@@ -51,14 +51,14 @@
                 </li>
 
                 <li class="nav-item admin-only head-teacher-only">
-                    <a href="/staff" class="nav-link" data-page="staff">
+                    <a href="{% url 'staff-list' org_code %}" class="nav-link" data-page="staff">
                         <i class="fas fa-chalkboard-teacher"></i>
                         <span>Staff</span>
                     </a>
                 </li>
 
                 <li class="nav-item admin-only head-teacher-only">
-                    <a href="/fees" class="nav-link" data-page="fees">
+                    <a href="{% url 'fees' org_code %}" class="nav-link" data-page="fees">
                         <i class="fas fa-money-bill-wave"></i>
                         <span>Fee Management</span>
                     </a>
@@ -66,14 +66,14 @@
 
                 <!-- All Users Menu -->
                 <li class="nav-item">
-                    <a href="/attendance" class="nav-link" data-page="attendance">
+                    <a href="{% url 'attendance' org_code %}" class="nav-link" data-page="attendance">
                         <i class="fas fa-calendar-check"></i>
                         <span>Attendance</span>
                     </a>
                 </li>
 
                 <li class="nav-item admin-only head-teacher-only">
-                    <a href="/reports" class="nav-link" data-page="reports">
+                    <a href="{% url 'reports' org_code %}" class="nav-link" data-page="reports">
                         <i class="fas fa-chart-bar"></i>
                         <span>Reports</span>
                     </a>
@@ -81,7 +81,7 @@
 
                 <!-- Admin Only -->
                 <li class="nav-item admin-only">
-                    <a href="/settings" class="nav-link" data-page="settings">
+                    <a href="{% url 'settings' org_code %}" class="nav-link" data-page="settings">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
@@ -131,5 +131,7 @@
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<script src="{% static 'js/layout.js' %}"></script>
+{% endblock %}
+{% block layout_js %}
+    <script src="{% static 'js/layout.js' %}"></script>
 {% endblock %}

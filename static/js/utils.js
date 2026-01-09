@@ -352,6 +352,43 @@ const Utils = {
         }
 
         return age;
+    },
+
+    /**
+     * Format number with commas
+     * @param {number} num - Number to format
+     * @param {number} decimals - Decimal places (default: 2)
+     */
+    formatNumber: function(num, decimals = 2) {
+        if (num === null || num === undefined || isNaN(num)) return '0';
+        return parseFloat(num).toLocaleString('en-US', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    },
+
+    /**
+     * Format date and time
+     * @param {string} dateString - ISO date string
+     */
+    formatDateTime: function(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    },
+
+    /**
+     * Get org code from URL
+     */
+    getOrgCode: function() {
+        const pathParts = window.location.pathname.split('/');
+        return pathParts[1] || '';
     }
 };
 

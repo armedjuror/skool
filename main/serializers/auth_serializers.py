@@ -10,6 +10,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+from main.models import User
+
 
 class LoginSerializer(serializers.Serializer):
     """
@@ -271,3 +273,37 @@ class LogoutSerializer(serializers.Serializer):
     Serializer for logout (no fields required)
     """
     pass
+
+class UserAPISerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'user_type',
+            'is_active', 'password', 'organization', 'date_joined', 'last_login'
+        ]
+        read_only_fields = ['id', 'organization', 'date_joined', 'last_login']
+        extra_kwargs = {
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            'user_type': {'required': True},
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

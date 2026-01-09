@@ -1,0 +1,835 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block page_title %}Student Registration - {{ organization.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body{
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-main) 100%);;
+    }
+    /* Registration Form Specific Styles */
+    .registration-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 15px;
+    }
+
+    .registration-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .registration-header {
+        background: linear-gradient(135deg, var(--primary-main) 0%, var(--primary-light) 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .registration-header h2 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--primary-dark);
+    }
+
+    .registration-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 15px;
+    }
+
+    /* Progress Bar Styles */
+    .progress-container {
+        background: var(--gray-50);
+        padding: 30px 20px;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .progress-line {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gray-300);
+        z-index: 1;
+    }
+
+    .progress-line-fill {
+        height: 100%;
+        background: var(--accent-emerald);
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        flex: 1;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid var(--gray-300);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: var(--gray-500);
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .progress-step.active .step-circle {
+        border-color: var(--accent-emerald);
+        background: var(--accent-emerald);
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .progress-step.completed .step-circle {
+        border-color: var(--accent-emerald);
+        background: var(--accent-emerald);
+        color: white;
+    }
+
+    .progress-step.completed .step-circle i {
+        display: block;
+    }
+
+    .step-circle span {
+        display: block;
+    }
+
+    .progress-step.completed .step-circle span {
+        display: none;
+    }
+
+    .step-circle i {
+        display: none;
+    }
+
+    .step-label {
+        font-size: 13px;
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .progress-step.active .step-label {
+        color: var(--accent-emerald);
+        font-weight: 600;
+    }
+
+    /* Form Section Styles */
+    .form-body {
+        padding: 40px;
+    }
+
+    .form-section {
+        display: none;
+    }
+
+    .form-section.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--accent-gold);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 3px;
+    }
+
+    .form-control, .form-select {
+        border: 1.5px solid var(--gray-300);
+        padding: 10px 15px;
+        font-size: 14px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--accent-emerald);
+        box-shadow: 0 0 0 3px rgba(61, 112, 104, 0.1);
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--danger);
+    }
+
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: var(--success);
+    }
+
+    .invalid-feedback, .valid-feedback {
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    /* Photo Upload Styles */
+    .photo-upload-container {
+        text-align: center;
+    }
+
+    .photo-preview-box {
+        width: 150px;
+        height: 180px;
+        border: 2px dashed var(--gray-300);
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--gray-50);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto;
+    }
+
+    .photo-preview-box:hover {
+        border-color: var(--accent-emerald);
+        background: var(--gray-100);
+    }
+
+    .photo-preview-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .photo-placeholder {
+        text-align: center;
+        color: var(--gray-500);
+    }
+
+    .photo-placeholder i {
+        font-size: 40px;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .photo-placeholder p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    #student_photo {
+        display: none;
+    }
+
+    /* Navigation Buttons */
+    .form-navigation {
+        display: flex;
+        justify-content: space-between;
+        padding: 30px 40px;
+        background: var(--gray-50);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .btn-nav {
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-prev {
+        background: white;
+        border: 2px solid var(--gray-300);
+        color: var(--gray-700);
+    }
+
+    .btn-prev:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-400);
+    }
+
+    .btn-next, .btn-submit {
+        background: var(--accent-emerald);
+        border: 2px solid var(--accent-emerald);
+        color: white;
+    }
+
+    .btn-next:hover, .btn-submit:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-submit {
+        background: var(--accent-gold);
+        border-color: var(--accent-gold);
+    }
+
+    .btn-submit:hover {
+        background: #b8941f;
+        border-color: #b8941f;
+    }
+
+    /* Success Message */
+    .success-container {
+        display: none;
+        text-align: center;
+        padding: 60px 40px;
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--success);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    .success-icon i {
+        font-size: 40px;
+        color: white;
+    }
+
+    .success-container h3 {
+        color: var(--primary-dark);
+        margin-bottom: 15px;
+    }
+
+    .success-container p {
+        color: var(--gray-600);
+        font-size: 15px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .registration-header {
+            padding: 20px;
+        }
+
+        .registration-header h2 {
+            font-size: 22px;
+        }
+
+        .form-body {
+            padding: 25px 20px;
+        }
+
+        .form-navigation {
+            padding: 20px;
+        }
+
+        .progress-steps {
+            flex-wrap: wrap;
+        }
+
+        .progress-step {
+            flex-basis: 33.33%;
+            margin-bottom: 20px;
+        }
+
+        .step-label {
+            font-size: 11px;
+        }
+
+        .step-circle {
+            width: 35px;
+            height: 35px;
+        }
+
+        .progress-line {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .progress-step {
+            flex-basis: 50%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="registration-container">
+    <div class="registration-card">
+        <!-- Header -->
+        <div class="registration-header">
+            <h2>Student Registration</h2>
+            <p>{{ organization.name }}</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-steps">
+                <div class="progress-line">
+                    <div class="progress-line-fill" id="progressLineFill"></div>
+                </div>
+                <div class="progress-step active" data-step="1">
+                    <div class="step-circle">
+                        <span>1</span>
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="step-label">Personal Details</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-circle">
+                        <span>2</span>
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="step-label">Family Details</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-circle">
+                        <span>3</span>
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="step-label">Address in Qatar</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-circle">
+                        <span>4</span>
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="step-label">Address in India</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="step-circle">
+                        <span>5</span>
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="step-label">Academic Details</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <form id="studentRegistrationForm" novalidate>
+            <div class="form-body">
+                <!-- Section 1: Personal Details -->
+                <div class="form-section active" data-section="1">
+                    <h3 class="section-title">Personal Details</h3>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Admission Type <span class="required">*</span></label>
+                            <select class="form-select" id="admission_type" name="admission_type" required>
+                                <option value="">Select Admission Type</option>
+                                <option value="NEW">New</option>
+                                <option value="EXISTING_UPDATE">Existing Update</option>
+                            </select>
+                            <div class="invalid-feedback">Please select admission type</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Gender <span class="required">*</span></label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                            <div class="invalid-feedback">Please select gender</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Student Name (As per QID/Passport) <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="student_name" name="student_name"
+                               placeholder="Enter full name" required>
+                        <div class="invalid-feedback">Please enter student name</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth <span class="required">*</span></label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+                            <div class="invalid-feedback">Please enter date of birth</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Age</label>
+                            <input type="text" class="form-control" id="age" name="age" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Study Type <span class="required">*</span></label>
+                            <select class="form-select" id="study_type" name="study_type" required>
+                                <option value="">Select Study Type</option>
+                                <option value="PERMANENT">Permanent</option>
+                                <option value="TEMPORARY">Temporary</option>
+                            </select>
+                            <div class="invalid-feedback">Please select study type</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ID Card Type <span class="required">*</span></label>
+                            <select class="form-select" id="id_card_type" name="id_card_type" required>
+                                <option value="">Select ID Card Type</option>
+                                <option value="QID">QID</option>
+                                <option value="PASSPORT">Passport</option>
+                            </select>
+                            <div class="invalid-feedback">Please select ID card type</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">QID/Passport Number <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="id_number" name="id_number"
+                               placeholder="Enter QID or Passport number" required>
+                        <div class="invalid-feedback">Please enter QID/Passport number</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Upload Student Photo <span class="required">*</span></label>
+                        <div class="photo-upload-container">
+                            <div class="photo-preview-box" id="photoPreviewBox">
+                                <div class="photo-placeholder">
+                                    <i class="fas fa-camera"></i>
+                                    <p>Click to upload<br>photo</p>
+                                </div>
+                            </div>
+                            <input type="file" id="student_photo" name="student_photo"
+                                   accept="image/jpeg,image/png,image/jpg" required>
+                            <div class="invalid-feedback text-center mt-2">Please upload student photo (JPG or PNG)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Family Details -->
+                <div class="form-section" data-section="2">
+                    <h3 class="section-title">Family Details</h3>
+
+                    <div class="mb-3">
+                        <label class="form-label">Father's Name (As per QID/Passport) <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="father_name" name="father_name"
+                               placeholder="Enter father's full name" required>
+                        <div class="invalid-feedback">Please enter father's name</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Parent Mobile Number <span class="required">*</span></label>
+                            <input type="tel" class="form-control" id="parent_mobile" name="parent_mobile"
+                                   placeholder="e.g., 55123456" pattern="[0-9]{8,15}" required>
+                            <div class="invalid-feedback">Please enter valid mobile number (digits only)</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Father's WhatsApp Number <span class="required">*</span></label>
+                            <input type="tel" class="form-control" id="whatsapp_number" name="whatsapp_number"
+                                   placeholder="e.g., 55123456" pattern="[0-9]{8,15}" required>
+                            <div class="invalid-feedback">Please enter valid WhatsApp number (digits only)</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email ID <span class="required">*</span></label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               placeholder="e.g., parent@example.com" required>
+                        <div class="invalid-feedback">Please enter valid email address</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mother's Full Name <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="mother_name" name="mother_name"
+                               placeholder="Enter mother's full name" required>
+                        <div class="invalid-feedback">Please enter mother's name</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Siblings Details</label>
+                        <textarea class="form-control" id="siblings_details" name="siblings_details"
+                                  rows="3" placeholder="Enter details about siblings (optional)"></textarea>
+                    </div>
+                </div>
+
+                <!-- Section 3: Address in Qatar -->
+                <div class="form-section" data-section="3">
+                    <h3 class="section-title">Address in Qatar</h3>
+
+                    <div class="mb-3">
+                        <label class="form-label">Place in Qatar <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="place_qatar" name="place_qatar"
+                               placeholder="e.g., Doha, Al Wakra" required>
+                        <div class="invalid-feedback">Please enter place in Qatar</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Landmark <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="landmark" name="landmark"
+                               placeholder="Enter nearby landmark" required>
+                        <div class="invalid-feedback">Please enter landmark</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Building Number <span class="required">*</span></label>
+                            <input type="number" class="form-control" id="building_number" name="building_number"
+                                   placeholder="e.g., 123" required>
+                            <div class="invalid-feedback">Please enter building number</div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Street Number <span class="required">*</span></label>
+                            <input type="number" class="form-control" id="street_number" name="street_number"
+                                   placeholder="e.g., 45" required>
+                            <div class="invalid-feedback">Please enter street number</div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Zone Number <span class="required">*</span></label>
+                            <input type="number" class="form-control" id="zone_number" name="zone_number"
+                                   placeholder="e.g., 67" required>
+                            <div class="invalid-feedback">Please enter zone number</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Address in India -->
+                <div class="form-section" data-section="4">
+                    <h3 class="section-title">Address in India</h3>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">State <span class="required">*</span></label>
+                            <select class="form-select" id="state_india" name="state_india" required>
+                                <option value="">Select State</option>
+                                <option value="Kerala">Kerala</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                <option value="Telangana">Telangana</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Gujarat">Gujarat</option>
+                                <option value="Rajasthan">Rajasthan</option>
+                                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                <option value="Bihar">Bihar</option>
+                                <option value="West Bengal">West Bengal</option>
+                                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Haryana">Haryana</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                                <option value="Uttarakhand">Uttarakhand</option>
+                                <option value="Goa">Goa</option>
+                                <option value="Odisha">Odisha</option>
+                                <option value="Jharkhand">Jharkhand</option>
+                                <option value="Chhattisgarh">Chhattisgarh</option>
+                                <option value="Assam">Assam</option>
+                                <option value="Meghalaya">Meghalaya</option>
+                                <option value="Manipur">Manipur</option>
+                                <option value="Tripura">Tripura</option>
+                                <option value="Nagaland">Nagaland</option>
+                                <option value="Mizoram">Mizoram</option>
+                                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                                <option value="Sikkim">Sikkim</option>
+                            </select>
+                            <div class="invalid-feedback">Please select state</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">District <span class="required">*</span></label>
+                            <input type="text" class="form-control" id="district_india" name="district_india"
+                                   placeholder="Enter district" required>
+                            <div class="invalid-feedback">Please enter district</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Panchayath</label>
+                        <input type="text" class="form-control" id="panchayath" name="panchayath"
+                               placeholder="Enter panchayath (optional)">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Place Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" id="place_india" name="place_india"
+                                   placeholder="Enter place name" required>
+                            <div class="invalid-feedback">Please enter place name</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">House Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" id="house_name" name="house_name"
+                                   placeholder="Enter house name" required>
+                            <div class="invalid-feedback">Please enter house name</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Contact Number in India <span class="required">*</span></label>
+                        <input type="tel" class="form-control" id="contact_india" name="contact_india"
+                               placeholder="e.g., 9876543210" pattern="[0-9]{10,15}" required>
+                        <div class="invalid-feedback">Please enter valid contact number (digits only)</div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Academic Details -->
+                <div class="form-section" data-section="5">
+                    <h3 class="section-title">Academic Details</h3>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Class to be Admitted <span class="required">*</span></label>
+                            <select class="form-select" id="class_admitted" name="class_admitted" required>
+                                <option value="">Select Class</option>
+                                <option value="I">Class I</option>
+                                <option value="II">Class II</option>
+                                <option value="III">Class III</option>
+                                <option value="IV">Class IV</option>
+                                <option value="V">Class V</option>
+                                <option value="VI">Class VI</option>
+                                <option value="VII">Class VII</option>
+                                <option value="VIII">Class VIII</option>
+                                <option value="IX">Class IX</option>
+                                <option value="X">Class X</option>
+                                <option value="XI">Class XI</option>
+                                <option value="XII">Class XII</option>
+                            </select>
+                            <div class="invalid-feedback">Please select class</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Interested Branch <span class="required">*</span></label>
+                            <select class="form-select" id="branch" name="branch" required>
+                                <option value="">Select Branch</option>
+                                <option value="Al Nabit English Madrassa">Al Nabit English Madrassa</option>
+                                <option value="New Salata Madrassa">New Salata Madrassa</option>
+                                <option value="Wakra Madrassa">Wakra Madrassa</option>
+                                <option value="Midmac Madrassa">Midmac Madrassa</option>
+                                <option value="Kananda Madrassa">Kananda Madrassa</option>
+                                <option value="Day Tuition">Day Tuition</option>
+                                <option value="Evening Tuition">Evening Tuition</option>
+                                <option value="Madina Khalifa Madrassa">Madina Khalifa Madrassa</option>
+                                <option value="Al Thumama Madrassa">Al Thumama Madrassa</option>
+                                <option value="AlKhore Madrassa">AlKhore Madrassa</option>
+                                <option value="Muaither Madrassa">Muaither Madrassa</option>
+                                <option value="Summer Camp">Summer Camp</option>
+                                <option value="Quran Hifz">Quran Hifz</option>
+                            </select>
+                            <div class="invalid-feedback">Please select branch</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Completed Classes</label>
+                        <select class="form-select" id="completed_classes" name="completed_classes">
+                            <option value="">Select Completed Class (Optional)</option>
+                            <option value="I">Class I</option>
+                            <option value="II">Class II</option>
+                            <option value="III">Class III</option>
+                            <option value="IV">Class IV</option>
+                            <option value="V">Class V</option>
+                            <option value="VI">Class VI</option>
+                            <option value="VII">Class VII</option>
+                            <option value="VIII">Class VIII</option>
+                            <option value="IX">Class IX</option>
+                            <option value="X">Class X</option>
+                            <option value="XI">Class XI</option>
+                            <option value="XII">Class XII</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Previous Madrasa Name</label>
+                        <input type="text" class="form-control" id="previous_madrasa" name="previous_madrasa"
+                               placeholder="Enter previous madrasa name (optional)">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">TC Number</label>
+                            <input type="text" class="form-control" id="tc_number" name="tc_number"
+                                   placeholder="Enter TC number (optional)">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Aadhar Number</label>
+                            <input type="text" class="form-control" id="aadhar_number" name="aadhar_number"
+                                   placeholder="Enter 12-digit Aadhar number (optional)" pattern="[0-9]{12}">
+                            <div class="invalid-feedback">Aadhar number must be 12 digits</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="form-navigation">
+                <button type="button" class="btn btn-nav btn-prev" id="prevBtn" style="display: none;">
+                    <i class="fas fa-arrow-left me-2"></i> Previous
+                </button>
+                <div></div>
+                <button type="button" class="btn btn-nav btn-next" id="nextBtn">
+                    Next <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+                <button type="submit" class="btn btn-nav btn-submit" id="submitBtn" style="display: none;">
+                    <i class="fas fa-paper-plane me-2"></i> Submit Application
+                </button>
+            </div>
+        </form>
+
+        <!-- Success Message -->
+        <div class="success-container" id="successContainer">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3>Registration Submitted Successfully!</h3>
+            <p>Thank you for registering with Kerala Islamic Centre.<br>
+               You will receive a confirmation email shortly.<br>
+               Our admin team will review your application and contact you.</p>
+            <button type="button" class="btn btn-nav btn-next mt-4" onclick="location.reload()">
+                Submit Another Application
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>const ORG_CODE='{{ org_code }}';</script>
+    <script src="{% static 'js/student-registration.js' %}"></script>
+{% endblock %}

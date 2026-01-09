@@ -8,40 +8,33 @@ const API_CONFIG = {
     // Base URL - Update this for production
     BASE_URL: window.location.origin,
 
-    // API Endpoints
+    // API Endpoints - Updated for DRF ViewSet routes
     ENDPOINTS: {
         // Authentication
         AUTH: {
             LOGIN: '/api/auth/login/',
             LOGOUT: '/api/auth/logout/',
-            REFRESH_TOKEN: '/api/auth/refresh/',
             FORGOT_PASSWORD: '/api/auth/forgot-password/',
             RESET_PASSWORD: '/api/auth/reset-password/',
             CHANGE_PASSWORD: '/api/auth/change-password/',
             GET_USER_INFO: '/api/auth/user/',
         },
 
-        // Student Management
+        // Student Management (ViewSet routes)
         STUDENTS: {
             LIST: '/api/students/',
-            CREATE: '/api/students/create/',
+            CREATE: '/api/students/',
             DETAIL: '/api/students/{id}/',
-            UPDATE: '/api/students/{id}/update/',
-            DELETE: '/api/students/{id}/delete/',
+            UPDATE: '/api/students/{id}/',
+            DELETE: '/api/students/{id}/',
             SEARCH: '/api/students/search/',
-            EXPORT: '/api/students/export/',
-            BULK_UPLOAD: '/api/students/bulk-upload/',
         },
 
         // Student Registration (Public)
         REGISTRATION: {
             STUDENT: {
-                SUBMIT: '/api/registration/student/',
+                SUBMIT: '/api/registration/student/submit/',
                 VERIFY: '/api/registration/student/verify/',
-            },
-            STAFF: {
-                SUBMIT: '/api/registration/staff/',
-                VERIFY: '/api/registration/staff/verify/',
             },
         },
 
@@ -54,40 +47,117 @@ const API_CONFIG = {
                 REJECT: '/api/pending/students/{id}/reject/',
                 REQUEST_INFO: '/api/pending/students/{id}/request-info/',
             },
-            STAFF: {
-                LIST: '/api/pending/staff/',
-                DETAIL: '/api/pending/staff/{id}/',
-                APPROVE: '/api/pending/staff/{id}/approve/',
-                REJECT: '/api/pending/staff/{id}/reject/',
-                REQUEST_INFO: '/api/pending/staff/{id}/request-info/',
-            },
         },
 
-        // Staff Management
-        STAFF: {
-            LIST: '/api/staff/',
-            CREATE: '/api/staff/create/',
-            DETAIL: '/api/staff/{id}/',
-            UPDATE: '/api/staff/{id}/update/',
-            DELETE: '/api/staff/{id}/delete/',
-            SEARCH: '/api/staff/search/',
-            EXPORT: '/api/staff/export/',
+        // Staff Management (ViewSet routes)
+        STAFFS: {
+            LIST: '/api/staffs/',
+            CREATE: '/api/staffs/',
+            DETAIL: '/api/staffs/{id}/',
+            UPDATE: '/api/staffs/{id}/',
+            DELETE: '/api/staffs/{id}/',
+            SEARCH: '/api/staffs/',
+            RESET_PASSWORD: '/api/staffs/{id}/reset-password/',
         },
+
+        // Teachers (alias for staff with teacher role)
+        TEACHERS: {
+            LIST: '/api/staffs/?user_type=TEACHER',
+        },
+
+        // Academic Year Management (singular for backwards compatibility)
+        ACADEMIC_YEAR: {
+            LIST: '/api/academic-years/',
+            CREATE: '/api/academic-years/',
+            DETAIL: '/api/academic-years/{id}/',
+            UPDATE: '/api/academic-years/{id}/',
+            DELETE: '/api/academic-years/{id}/',
+            ACTIVATE: '/api/academic-years/{id}/activate/',
+        },
+
+        // Also expose as plural
+        ACADEMIC_YEARS: {
+            LIST: '/api/academic-years/',
+            CREATE: '/api/academic-years/',
+            DETAIL: '/api/academic-years/{id}/',
+            UPDATE: '/api/academic-years/{id}/',
+            DELETE: '/api/academic-years/{id}/',
+            ACTIVATE: '/api/academic-years/{id}/activate/',
+        },
+
+        // Branch Management
+        BRANCHES: {
+            LIST: '/api/branches/',
+            CREATE: '/api/branches/',
+            DETAIL: '/api/branches/{id}/',
+            UPDATE: '/api/branches/{id}/',
+            DELETE: '/api/branches/{id}/',
+        },
+
+        // Class Management
+        CLASSES: {
+            LIST: '/api/classes/',
+            CREATE: '/api/classes/',
+            DETAIL: '/api/classes/{id}/',
+            UPDATE: '/api/classes/{id}/',
+            DELETE: '/api/classes/{id}/',
+        },
+
+        // Division Management
+        DIVISIONS: {
+            LIST: '/api/divisions/',
+            CREATE: '/api/divisions/',
+            DETAIL: '/api/divisions/{id}/',
+            UPDATE: '/api/divisions/{id}/',
+            DELETE: '/api/divisions/{id}/',
+        },
+
+        USERS: {
+            LIST: '/api/users/',
+            CREATE: '/api/users/',
+            DETAIL: '/api/users/{id}/',
+            UPDATE: '/api/users/{id}/',
+            DELETE: '/api/users/{id}/',
+            RESET_PASSWORD: '/api/users/{id}/reset_password/',
+        },
+
+        // System Settings Management
+        SYSTEM_SETTINGS: {
+            LIST: '/api/system-settings/',
+            CREATE: '/api/system-settings/',
+            DETAIL: '/api/system-settings/{id}/',
+            UPDATE: '/api/system-settings/{id}/',
+            DELETE: '/api/system-settings/{id}/',
+            BY_KEY: '/api/system-settings/by-key/{key}/',
+        },
+
+        // System operations (placeholder endpoints)
+        SYSTEM: {
+            BACKUP: '/api/system/backup/',
+            BACKUP_SCHEDULE: '/api/system/backup-schedule/',
+            RESTORE: '/api/system/restore/',
+            PASSWORD_POLICY: '/api/system/password-policy/',
+            SESSION_TIMEOUT: '/api/system/session-timeout/',
+            AUDIT_LOGS: '/api/dashboard/recent-activity/',
+        },
+
+        // Settings endpoint
+        SETTINGS: '/api/system-settings/',
 
         // Fee Management
         FEES: {
             CONFIGURATION: {
                 MONTHLY: {
                     LIST: '/api/fees/monthly/',
-                    CREATE: '/api/fees/monthly/create/',
-                    UPDATE: '/api/fees/monthly/{id}/update/',
-                    DELETE: '/api/fees/monthly/{id}/delete/',
+                    CREATE: '/api/fees/monthly/',
+                    UPDATE: '/api/fees/monthly/{id}/',
+                    DELETE: '/api/fees/monthly/{id}/',
                 },
                 ADDITIONAL: {
                     LIST: '/api/fees/additional/',
-                    CREATE: '/api/fees/additional/create/',
-                    UPDATE: '/api/fees/additional/{id}/update/',
-                    DELETE: '/api/fees/additional/{id}/delete/',
+                    CREATE: '/api/fees/additional/',
+                    UPDATE: '/api/fees/additional/{id}/',
+                    DELETE: '/api/fees/additional/{id}/',
                 },
             },
             COLLECTION: {
@@ -135,51 +205,6 @@ const API_CONFIG = {
             CUSTOM: '/api/reports/custom/',
         },
 
-        // Settings
-        SETTINGS: {
-            ACADEMIC_YEAR: {
-                LIST: '/api/settings/academic-years/',
-                CREATE: '/api/settings/academic-years/create/',
-                UPDATE: '/api/settings/academic-years/{id}/update/',
-                ACTIVATE: '/api/settings/academic-years/{id}/activate/',
-            },
-            BRANCHES: {
-                LIST: '/api/settings/branches/',
-                CREATE: '/api/settings/branches/create/',
-                UPDATE: '/api/settings/branches/{id}/update/',
-                DELETE: '/api/settings/branches/{id}/delete/',
-            },
-            CLASSES: {
-                LIST: '/api/settings/classes/',
-                CREATE: '/api/settings/classes/create/',
-                UPDATE: '/api/settings/classes/{id}/update/',
-                DELETE: '/api/settings/classes/{id}/delete/',
-            },
-            DIVISIONS: {
-                LIST: '/api/settings/divisions/',
-                CREATE: '/api/settings/divisions/create/',
-                UPDATE: '/api/settings/divisions/{id}/update/',
-                DELETE: '/api/settings/divisions/{id}/delete/',
-            },
-            USERS: {
-                LIST: '/api/settings/users/',
-                CREATE: '/api/settings/users/create/',
-                UPDATE: '/api/settings/users/{id}/update/',
-                DELETE: '/api/settings/users/{id}/delete/',
-                RESET_PASSWORD: '/api/settings/users/{id}/reset-password/',
-            },
-            BACKUP: {
-                CREATE: '/api/settings/backup/create/',
-                LIST: '/api/settings/backup/list/',
-                RESTORE: '/api/settings/backup/restore/',
-                DOWNLOAD: '/api/settings/backup/{id}/download/',
-            },
-            AUDIT_LOGS: {
-                LIST: '/api/settings/audit-logs/',
-                EXPORT: '/api/settings/audit-logs/export/',
-            },
-        },
-
         // Dashboard
         DASHBOARD: {
             STATS: '/api/dashboard/stats/',
@@ -187,25 +212,61 @@ const API_CONFIG = {
             NOTIFICATIONS: '/api/dashboard/notifications/',
         },
 
-        // Utilities
+        // Utilities (for dropdowns/selects in forms)
         UTILITIES: {
-            STATES: '/api/utilities/states/',
-            DISTRICTS: '/api/utilities/districts/{state_id}/',
-            UPLOAD_FILE: '/api/utilities/upload/',
+            BRANCHES: '/api/utilities/branches/',
+            CLASSES: '/api/utilities/classes/',
+            DIVISIONS: '/api/utilities/divisions/',
         },
     },
 
+    // Get CSRF token from cookie
+    getCSRFToken: function() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    },
+
     // Request Headers
-    getHeaders: function(includeAuth = true) {
+    getHeaders: function(includeAuth = true, isFormData = false) {
         const headers = {
-            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
         };
 
+        // Don't set Content-Type for FormData (browser will set it with boundary)
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        // Add CSRF token
+        const csrfToken = this.getCSRFToken();
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
+        // Add Authorization header if authenticated
         if (includeAuth) {
-            const token = localStorage.getItem('auth_token');
+            // Token is stored via Utils.storage.set() which uses JSON.stringify
+            // So we need to parse it back
+            let token = localStorage.getItem('auth_token');
             if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
+                try {
+                    token = JSON.parse(token);
+                } catch (e) {
+                    // Token might be stored as plain string
+                }
+                // DRF TokenAuthentication uses "Token" prefix
+                headers['Authorization'] = `Token ${token}`;
             }
         }
 
@@ -230,7 +291,121 @@ const API_CONFIG = {
         const params = new URLSearchParams(queryParams);
         return params.toString() ? `${url}?${params.toString()}` : url;
     },
+
+    // Helper method for making API requests
+    request: async function(endpoint, options = {}) {
+        Utils.showLoader()
+        const {
+            method = 'GET',
+            params = {},
+            query = {},
+            body = null,
+            includeAuth = true,
+            isFormData = false,
+        } = options;
+
+        const url = Object.keys(query).length > 0
+            ? this.getUrlWithQuery(this.getUrl(endpoint, params), query)
+            : this.getUrl(endpoint, params);
+
+        const fetchOptions = {
+            method,
+            headers: this.getHeaders(includeAuth, isFormData),
+            credentials: 'same-origin',
+        };
+
+        if (body && method !== 'GET') {
+            fetchOptions.body = isFormData ? body : JSON.stringify(body);
+        }
+
+        try {
+            const response = await fetch(url, fetchOptions);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw {
+                    status: response.status,
+                    message: data.message || 'Request failed',
+                    errors: data.errors || {},
+                    data
+                };
+            }
+
+            return data;
+        } catch (error) {
+            if (error.status) {
+                throw error;
+            }
+            throw {
+                status: 0,
+                message: error.message || 'Network error',
+                errors: {}
+            };
+        } finally {
+            Utils.hideLoader()
+        }
+    },
+
+    // Convenience methods for common HTTP verbs
+    get: function(endpoint, options = {}) {
+        return this.request(endpoint, { ...options, method: 'GET' });
+    },
+
+    post: function(endpoint, body, options = {}) {
+        return this.request(endpoint, { ...options, method: 'POST', body });
+    },
+
+    put: function(endpoint, body, options = {}) {
+        return this.request(endpoint, { ...options, method: 'PUT', body });
+    },
+
+    patch: function(endpoint, body, options = {}) {
+        return this.request(endpoint, { ...options, method: 'PATCH', body });
+    },
+
+    delete: function(endpoint, options = {}) {
+        return this.request(endpoint, { ...options, method: 'DELETE' });
+    },
 };
+
+// Configure jQuery AJAX to include CSRF token and credentials
+(function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Check if method requires CSRF
+    function csrfSafeMethod(method) {
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+
+    // Configure jQuery AJAX defaults
+    if (typeof $ !== 'undefined' && $.ajaxSetup) {
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                // Add CSRF token for unsafe methods
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                }
+            },
+            xhrFields: {
+                withCredentials: true
+            }
+        });
+    }
+})();
 
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {

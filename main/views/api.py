@@ -1,18 +1,17 @@
 """
-API Views for Kerala Islamic Centre Madrassa Management System
+API Views for Kerala Islamic Centre Madrassa Management System - REFACTORED
 
-This module implements all API endpoints:
+This module implements all API endpoints using DRF ViewSets for cleaner code:
 - Authentication (Login, Logout, Password management)
 - Dashboard (Stats, Activities, Notifications)
 - Student Management (CRUD, Registration, Pending approvals)
 
 All endpoints follow RESTful design with proper error handling and validation.
 """
-
-from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView
+from django.urls import reverse
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from rest_framework.pagination import PageNumberPagination
@@ -50,7 +49,7 @@ from main.serializers.auth_serializers import (
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
-    LogoutSerializer
+    LogoutSerializer, UserAPISerializer
 )
 
 from main.serializers.student_serializers import (
@@ -70,6 +69,33 @@ from main.serializers.student_serializers import (
     DivisionMinimalSerializer,
 )
 
+from main.serializers.settings_serializers import (
+    AcademicYearListSerializer,
+    AcademicYearDetailSerializer,
+    AcademicYearCreateSerializer,
+    AcademicYearUpdateSerializer,
+    BranchListSerializer,
+    BranchDetailSerializer,
+    BranchCreateSerializer,
+    BranchUpdateSerializer,
+    ClassListSerializer,
+    ClassDetailSerializer,
+    ClassCreateSerializer,
+    ClassUpdateSerializer,
+    DivisionListSerializer,
+    DivisionDetailSerializer,
+    DivisionCreateSerializer,
+    DivisionUpdateSerializer,
+    StaffListSerializer,
+    StaffDetailSerializer,
+    StaffCreateSerializer,
+    StaffUpdateSerializer,
+    SystemSettingListSerializer,
+    SystemSettingDetailSerializer,
+    SystemSettingCreateSerializer,
+    SystemSettingUpdateSerializer,
+)
+
 from main.permissions import (
     IsOrganizationMember,
     IsAdmin,
@@ -82,58 +108,32 @@ from main.permissions import (
 User = get_user_model()
 
 
-class LoginAPIView(APIView):
+# =============================================================================
+# AUTHENTICATION VIEWSET
+# =============================================================================
+
+class AuthViewSet(viewsets.GenericViewSet):
     """
-    POST /api/auth/login/
+    ViewSet for authentication operations.
 
-    Authenticate user and return authentication token.
-
-    Request Body:
-    {
-        "email": "user@example.com",
-        "password": "password123",
-        "remember_me": false  # optional
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Login successful",
-        "data": {
-            "token": "abc123...",
-            "user": {
-                "id": 1,
-                "email": "user@example.com",
-                "first_name": "John",
-                "last_name": "Doe",
-                "role": "head_teacher",
-                "organization": {
-                    "id": 1,
-                    "name": "KIC Qatar",
-                    "code": "KIC-QA"
-                },
-                "branch": {
-                    "id": 1,
-                    "name": "Doha Branch",
-                    "code": "DOH"
-                },
-                "permissions": {...}
-            }
-        }
-    }
-
-    Error Responses:
-    - 400: Validation failed
-    - 401: Invalid credentials
+    Endpoints:
+    - POST /api/auth/login/ - Login user
+    - POST /api/auth/logout/ - Logout user
+    - GET /api/auth/user/ - Get current user
+    - POST /api/auth/change-password/ - Change password
+    - POST /api/auth/forgot-password/ - Request password reset
+    - POST /api/auth/reset-password/ - Reset password with token
     """
-
     permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = LoginSerializer(
-            data=request.data,
-            context={'request': request}
-        )
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        """
+        POST /api/auth/login/
+
+        Authenticate user and return authentication token.
+        """
+        serializer = LoginSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():
             user = serializer.validated_data['user']
@@ -144,13 +144,12 @@ class LoginAPIView(APIView):
 
             # If token is old and user doesn't want to be remembered, regenerate
             if not remember_me and not created:
-                # Check if token is older than 24 hours
                 token_age = timezone.now() - token.created
                 if token_age > timedelta(hours=24):
                     token.delete()
                     token = Token.objects.create(user=user)
 
-            # Log the user in (creates session)
+            # Log the user in
             login(request, user)
 
             # Update last login
@@ -165,7 +164,8 @@ class LoginAPIView(APIView):
                 'message': 'Login successful',
                 'data': {
                     'token': token.key,
-                    'user': user_serializer.data
+                    'user': user_serializer.data,
+                    'next': reverse('dashboard', args=[user.organization.code],),
                 }
             }, status=status.HTTP_200_OK)
 
@@ -175,30 +175,18 @@ class LoginAPIView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def logout(self, request):
+        """
+        POST /api/auth/logout/
 
-class LogoutAPIView(APIView):
-    """
-    POST /api/auth/logout/
-
-    Logout user and delete authentication token.
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Logout successful"
-    }
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
+        Logout user and delete authentication token.
+        """
         try:
-            # Delete the user's token
             request.user.auth_token.delete()
         except Exception:
             pass
 
-        # Logout from session
         logout(request)
 
         return Response({
@@ -206,67 +194,26 @@ class LogoutAPIView(APIView):
             'message': 'Logout successful'
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def user(self, request):
+        """
+        GET /api/auth/user/
 
-class CurrentUserAPIView(APIView):
-    """
-    GET /api/auth/user/
-
-    Get current authenticated user's information.
-
-    Response (200):
-    {
-        "success": true,
-        "data": {
-            "id": 1,
-            "email": "user@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "role": "head_teacher",
-            "organization": {...},
-            "branch": {...},
-            "permissions": {...}
-        }
-    }
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
+        Get current authenticated user's information.
+        """
         serializer = UserSerializer(request.user)
-
         return Response({
             'success': True,
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='change-password')
+    def change_password(self, request):
+        """
+        POST /api/auth/change-password/
 
-class ChangePasswordAPIView(APIView):
-    """
-    POST /api/auth/change-password/
-
-    Change user's password (requires current password).
-
-    Request Body:
-    {
-        "current_password": "oldpass123",
-        "new_password": "newpass123",
-        "confirm_password": "newpass123"
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Password changed successfully"
-    }
-
-    Error Responses:
-    - 400: Validation failed
-    - 401: Current password incorrect
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
+        Change user's password (requires current password).
+        """
         serializer = ChangePasswordSerializer(
             data=request.data,
             context={'request': request}
@@ -277,7 +224,7 @@ class ChangePasswordAPIView(APIView):
             request.user.set_password(serializer.validated_data['new_password'])
             request.user.save()
 
-            # Delete old token and create new one (force re-login on other devices)
+            # Delete old token and create new one
             try:
                 request.user.auth_token.delete()
             except Exception:
@@ -296,30 +243,13 @@ class ChangePasswordAPIView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], url_path='forgot-password')
+    def forgot_password(self, request):
+        """
+        POST /api/auth/forgot-password/
 
-class ForgotPasswordAPIView(APIView):
-    """
-    POST /api/auth/forgot-password/
-
-    Request password reset (sends email with reset token).
-
-    Request Body:
-    {
-        "email": "user@example.com"
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Password reset instructions sent to your email"
-    }
-
-    Note: For security, always returns success even if email doesn't exist
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request):
+        Request password reset (sends email with reset token).
+        """
         serializer = ForgotPasswordSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -332,8 +262,7 @@ class ForgotPasswordAPIView(APIView):
                 token = secrets.token_urlsafe(32)
                 token_hash = hashlib.sha256(token.encode()).hexdigest()
 
-                # Store token hash and expiry in user model
-                # Note: You'll need to add these fields to your User model
+                # Store token hash and expiry
                 user.password_reset_token = token_hash
                 user.password_reset_expires = timezone.now() + timedelta(hours=24)
                 user.save(update_fields=['password_reset_token', 'password_reset_expires'])
@@ -363,7 +292,6 @@ KIC Madrassa Team
                     fail_silently=False,
                 )
             except User.DoesNotExist:
-                # Don't reveal if email exists or not (security measure)
                 pass
 
             return Response({
@@ -377,34 +305,13 @@ KIC Madrassa Team
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], url_path='reset-password')
+    def reset_password(self, request):
+        """
+        POST /api/auth/reset-password/
 
-class ResetPasswordAPIView(APIView):
-    """
-    POST /api/auth/reset-password/
-
-    Reset password using token from email.
-
-    Request Body:
-    {
-        "token": "abc123...",
-        "new_password": "newpass123",
-        "confirm_password": "newpass123"
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Password reset successful"
-    }
-
-    Error Responses:
-    - 400: Validation failed
-    - 401: Invalid or expired token
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request):
+        Reset password using token from email.
+        """
         serializer = ResetPasswordSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -428,7 +335,7 @@ class ResetPasswordAPIView(APIView):
                 user.password_reset_expires = None
                 user.save(update_fields=['password', 'password_reset_token', 'password_reset_expires'])
 
-                # Delete all existing tokens (force re-login on all devices)
+                # Delete all existing tokens
                 Token.objects.filter(user=user).delete()
 
                 # Send confirmation email
@@ -468,30 +375,27 @@ KIC Madrassa Team
 
 
 # =============================================================================
-# DASHBOARD API VIEWS
+# DASHBOARD VIEWSET
 # =============================================================================
 
-class DashboardStatsAPIView(APIView):
+class DashboardViewSet(viewsets.GenericViewSet):
     """
-    GET /api/dashboard/stats/
+    ViewSet for dashboard operations.
 
-    Get dashboard statistics based on user role.
-
-    Response (200):
-    {
-        "success": true,
-        "data": {
-            "students": {...},
-            "staff": {...},
-            "registrations": {...},
-            "fees": {...},
-            "attendance": {...}
-        }
-    }
+    Endpoints:
+    - GET /api/dashboard/stats/ - Get dashboard statistics
+    - GET /api/dashboard/recent-activity/ - Get recent activities
+    - GET /api/dashboard/notifications/ - Get notifications
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """
+        GET /api/dashboard/stats/
+
+        Get dashboard statistics based on user role.
+        """
         organization = request.user.organization
         user_role = request.user.role
         today = timezone.now().date()
@@ -502,15 +406,11 @@ class DashboardStatsAPIView(APIView):
             is_active=True
         ).first()
 
-        # Base querysets filtered by organization
-        students_qs = StudentProfile.objects.filter(
-            user__organization=organization
-        )
-        staff_qs = StaffProfile.objects.filter(
-            user__organization=organization
-        )
+        # Base querysets
+        students_qs = StudentProfile.objects.filter(user__organization=organization)
+        staff_qs = StaffProfile.objects.filter(user__organization=organization)
 
-        # For non-admin users, filter by branch if applicable
+        # Branch filtering for non-admin users
         user_branch = None
         if hasattr(request.user, 'staffprofile'):
             user_branch = request.user.staffprofile.branch
@@ -533,10 +433,7 @@ class DashboardStatsAPIView(APIView):
         }
 
         # Staff statistics
-        teachers_count = staff_qs.filter(
-            user__user_type='TEACHER',
-            status='ACTIVE'
-        ).count()
+        teachers_count = staff_qs.filter(user__user_type='TEACHER', status='ACTIVE').count()
         head_teachers_count = staff_qs.filter(
             user__user_type__in=['HEAD_TEACHER', 'CHIEF_HEAD_TEACHER'],
             status='ACTIVE'
@@ -562,11 +459,11 @@ class DashboardStatsAPIView(APIView):
 
         registrations_data = {
             'pending_students': pending_students_qs.count(),
-            'pending_staff': 0,  # Staff registration not yet implemented
+            'pending_staff': 0,
             'total_pending': pending_students_qs.count()
         }
 
-        # Fee statistics (this month)
+        # Fee statistics
         current_month = today.month
         current_year = today.year
 
@@ -601,26 +498,17 @@ class DashboardStatsAPIView(APIView):
         }
 
         # Attendance statistics
-        active_students = students_qs.filter(status='ACTIVE')
-
-        # Today's student attendance
         student_attendance_today = StudentAttendance.objects.filter(
             organization=organization,
             date=today
         )
         if user_branch:
-            student_attendance_today = student_attendance_today.filter(
-                student__branch=user_branch
-            )
+            student_attendance_today = student_attendance_today.filter(student__branch=user_branch)
 
         present_students = student_attendance_today.filter(status='PRESENT').count()
         total_marked = student_attendance_today.count()
+        student_percentage = round((present_students / total_marked) * 100, 1) if total_marked > 0 else 0
 
-        student_percentage = 0
-        if total_marked > 0:
-            student_percentage = round((present_students / total_marked) * 100, 1)
-
-        # Today's staff attendance
         staff_attendance_today = StaffAttendance.objects.filter(
             organization=organization,
             date=today
@@ -628,10 +516,7 @@ class DashboardStatsAPIView(APIView):
 
         present_staff = staff_attendance_today.filter(status='PRESENT').count()
         total_staff_marked = staff_attendance_today.count()
-
-        staff_percentage = 0
-        if total_staff_marked > 0:
-            staff_percentage = round((present_staff / total_staff_marked) * 100, 1)
+        staff_percentage = round((present_staff / total_staff_marked) * 100, 1) if total_staff_marked > 0 else 0
 
         attendance_data = {
             'today': {
@@ -643,7 +528,7 @@ class DashboardStatsAPIView(APIView):
                 'staff_total': total_staff_marked
             },
             'this_month': {
-                'student_average': student_percentage,  # Simplified for now
+                'student_average': student_percentage,
                 'staff_average': staff_percentage
             }
         }
@@ -659,65 +544,27 @@ class DashboardStatsAPIView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='recent-activity')
+    def recent_activity(self, request):
+        """
+        GET /api/dashboard/recent-activity/
 
-class RecentActivityAPIView(APIView):
-    """
-    GET /api/dashboard/recent-activity/
-
-    Get recent system activities.
-
-    Query Parameters:
-        - limit: Number of activities (default: 10)
-
-    Response (200):
-    {
-        "success": true,
-        "activities": [...]
-    }
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
+        Get recent system activities.
+        """
         organization = request.user.organization
         limit = int(request.query_params.get('limit', 10))
 
-        # Get recent audit logs
         activities = AuditLog.objects.filter(
             organization=organization
         ).select_related('user').order_by('-timestamp')[:limit]
 
-        # Map entity types to icons and colors
         type_mapping = {
-            'StudentRegistration': {
-                'type': 'student_registered',
-                'icon': 'fa-user-plus',
-                'color': 'primary'
-            },
-            'StudentProfile': {
-                'type': 'student_approved',
-                'icon': 'fa-user-check',
-                'color': 'success'
-            },
-            'FeeCollection': {
-                'type': 'fee_collected',
-                'icon': 'fa-money-bill',
-                'color': 'success'
-            },
-            'StudentAttendance': {
-                'type': 'attendance_marked',
-                'icon': 'fa-calendar-check',
-                'color': 'info'
-            },
-            'StaffProfile': {
-                'type': 'staff_added',
-                'icon': 'fa-user-tie',
-                'color': 'primary'
-            },
-            'LeaveRequest': {
-                'type': 'leave_requested',
-                'icon': 'fa-calendar-times',
-                'color': 'warning'
-            }
+            'StudentRegistration': {'type': 'student_registered', 'icon': 'fa-user-plus', 'color': 'primary'},
+            'StudentProfile': {'type': 'student_approved', 'icon': 'fa-user-check', 'color': 'success'},
+            'FeeCollection': {'type': 'fee_collected', 'icon': 'fa-money-bill', 'color': 'success'},
+            'StudentAttendance': {'type': 'attendance_marked', 'icon': 'fa-calendar-check', 'color': 'info'},
+            'StaffProfile': {'type': 'staff_added', 'icon': 'fa-user-tie', 'color': 'primary'},
+            'LeaveRequest': {'type': 'leave_requested', 'icon': 'fa-calendar-times', 'color': 'warning'}
         }
 
         result = []
@@ -751,28 +598,18 @@ class RecentActivityAPIView(APIView):
             'activities': result
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'])
+    def notifications(self, request):
+        """
+        GET /api/dashboard/notifications/
 
-class NotificationsAPIView(APIView):
-    """
-    GET /api/dashboard/notifications/
-
-    Get user notifications.
-
-    Response (200):
-    {
-        "success": true,
-        "unread_count": 5,
-        "notifications": [...]
-    }
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
+        Get user notifications.
+        """
         organization = request.user.organization
         user_role = request.user.role
         notifications = []
 
-        # Check for pending registrations (for admins and head teachers)
+        # Pending registrations
         if user_role in ['admin', 'chief_head_teacher', 'head_teacher']:
             pending_count = StudentRegistration.objects.filter(
                 organization=organization,
@@ -790,7 +627,7 @@ class NotificationsAPIView(APIView):
                     'action_url': '/registrations/'
                 })
 
-        # Check for fee dues (for admins and accountants)
+        # Fee dues
         if user_role in ['admin', 'chief_head_teacher', 'head_teacher', 'accountant']:
             overdue_count = StudentFeeDue.objects.filter(
                 student__user__organization=organization,
@@ -817,7 +654,7 @@ class NotificationsAPIView(APIView):
 
 
 # =============================================================================
-# STUDENT MANAGEMENT API VIEWS
+# STUDENT VIEWSET
 # =============================================================================
 
 class StudentPagination(PageNumberPagination):
@@ -827,34 +664,32 @@ class StudentPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class StudentListAPIView(ListAPIView):
+class StudentViewSet(viewsets.ModelViewSet):
     """
-    GET /api/students/
+    ViewSet for student management.
 
-    List all students with pagination and filters.
-
-    Query Parameters:
-        - page: Page number (default: 1)
-        - page_size: Items per page (default: 20, max: 100)
-        - status: Filter by status (active/inactive)
-        - category: Filter by category (permanent/temporary)
-        - branch: Filter by branch ID
-        - class: Filter by class ID
-        - division: Filter by division ID
-        - search: Search by name/admission number/mobile
-
-    Response (200):
-    {
-        "success": true,
-        "count": 100,
-        "next": "url",
-        "previous": "url",
-        "results": [...]
-    }
+    Endpoints:
+    - GET /api/students/ - List students (with pagination and filters)
+    - POST /api/students/ - Create student (direct admission)
+    - GET /api/students/{id}/ - Get student details
+    - PUT/PATCH /api/students/{id}/ - Update student
+    - DELETE /api/students/{id}/ - Delete student (soft delete)
+    - GET /api/students/search/ - Advanced search
     """
     permission_classes = [IsAuthenticated, CanManageStudents]
-    serializer_class = StudentListSerializer
     pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list' or self.action == 'search':
+            return StudentListSerializer
+        elif self.action == 'retrieve':
+            return StudentDetailSerializer
+        elif self.action == 'create':
+            return StudentCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return StudentUpdateSerializer
+        return StudentListSerializer
 
     def get_queryset(self):
         organization = self.request.user.organization
@@ -883,7 +718,6 @@ class StudentListAPIView(ListAPIView):
         if branch_filter:
             queryset = queryset.filter(branch_id=branch_filter)
 
-        # Filter by class through enrollment
         class_filter = self.request.query_params.get('class')
         if class_filter:
             queryset = queryset.filter(
@@ -900,7 +734,6 @@ class StudentListAPIView(ListAPIView):
                 enrollments__enrollment_status='ENROLLED'
             )
 
-        # Search
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -917,6 +750,15 @@ class StudentListAPIView(ListAPIView):
 
         return queryset.distinct().order_by('-created_at')
 
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAuthenticated(), IsAdmin()]
+        elif self.action in ['update', 'partial_update']:
+            return [IsAuthenticated(), IsHeadTeacher()]
+        elif self.action == 'destroy':
+            return [IsAuthenticated(), IsAdmin()]
+        return super().get_permissions()
+
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return Response({
@@ -927,39 +769,6 @@ class StudentListAPIView(ListAPIView):
             'results': response.data.get('results', [])
         })
 
-
-class StudentDetailAPIView(RetrieveAPIView):
-    """
-    GET /api/students/{id}/
-
-    Get detailed student information.
-
-    Response (200):
-    {
-        "success": true,
-        "data": {...}
-    }
-    """
-    permission_classes = [IsAuthenticated, CanManageStudents]
-    serializer_class = StudentDetailSerializer
-    lookup_field = 'id'
-
-    def get_queryset(self):
-        organization = self.request.user.organization
-        return StudentProfile.objects.filter(
-            user__organization=organization
-        ).select_related(
-            'user__userprofile',
-            'branch',
-            'family'
-        ).prefetch_related(
-            'enrollments__class_assigned',
-            'enrollments__division_assigned',
-            'enrollments__academic_year',
-            'user__addresses',
-            'academic_history'
-        )
-
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -967,29 +776,6 @@ class StudentDetailAPIView(RetrieveAPIView):
             'success': True,
             'data': serializer.data
         })
-
-
-class StudentCreateAPIView(CreateAPIView):
-    """
-    POST /api/students/create/
-
-    Create new student (Direct admission by admin).
-
-    Request: See StudentCreateSerializer for fields
-
-    Response (201):
-    {
-        "success": true,
-        "message": "Student created successfully",
-        "data": {
-            "id": "uuid",
-            "admission_number": "WAKR0001",
-            "name": "..."
-        }
-    }
-    """
-    permission_classes = [IsAuthenticated, IsAdmin]
-    serializer_class = StudentCreateSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -1012,38 +798,10 @@ class StudentCreateAPIView(CreateAPIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-
-class StudentUpdateAPIView(UpdateAPIView):
-    """
-    PUT/PATCH /api/students/{id}/update/
-
-    Update student information.
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Student updated successfully",
-        "data": {...}
-    }
-    """
-    permission_classes = [IsAuthenticated, IsHeadTeacher]
-    serializer_class = StudentUpdateSerializer
-    lookup_field = 'id'
-
-    def get_queryset(self):
-        organization = self.request.user.organization
-        return StudentProfile.objects.filter(
-            user__organization=organization
-        )
-
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=partial
-        )
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
         if serializer.is_valid():
             student = serializer.save()
@@ -1063,40 +821,13 @@ class StudentUpdateAPIView(UpdateAPIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    def destroy(self, request, *args, **kwargs):
+        student = self.get_object()
 
-class StudentDeleteAPIView(APIView):
-    """
-    DELETE /api/students/{id}/delete/
-
-    Soft delete student (set status to inactive).
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Student deleted successfully"
-    }
-    """
-    permission_classes = [IsAuthenticated, IsAdmin]
-
-    def delete(self, request, id):
-        organization = request.user.organization
-
-        try:
-            student = StudentProfile.objects.get(
-                id=id,
-                user__organization=organization
-            )
-        except StudentProfile.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Student not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        # Soft delete - set status to inactive
+        # Soft delete
         student.status = 'INACTIVE'
         student.save()
 
-        # Also deactivate user account
         student.user.is_active = False
         student.user.save()
 
@@ -1105,54 +836,37 @@ class StudentDeleteAPIView(APIView):
             'message': 'Student deleted successfully'
         })
 
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """
+        GET /api/students/search/
 
-class StudentSearchAPIView(ListAPIView):
-    """
-    GET /api/students/search/
-
-    Advanced student search with multiple filters.
-    Same as StudentListAPIView but with more specific search capabilities.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = StudentListSerializer
-    pagination_class = StudentPagination
-
-    def get_queryset(self):
-        return StudentListAPIView.get_queryset(self)
-
-    def list(self, request, *args, **kwargs):
-        return StudentListAPIView.list(self, request, *args, **kwargs)
+        Advanced student search with multiple filters.
+        """
+        return self.list(request)
 
 
 # =============================================================================
-# PUBLIC STUDENT REGISTRATION API VIEWS
+# STUDENT REGISTRATION VIEWSET (PUBLIC)
 # =============================================================================
 
-class StudentRegistrationSubmitAPIView(CreateAPIView):
+class StudentRegistrationViewSet(viewsets.GenericViewSet):
     """
-    POST /api/registration/student/
+    ViewSet for public student registration.
 
-    Submit student registration form (Public).
-
-    Request: See StudentRegistrationSerializer for fields
-
-    Response (201):
-    {
-        "success": true,
-        "message": "Registration submitted successfully",
-        "data": {
-            "registration_id": "uuid",
-            "student_name": "...",
-            "submission_date": "...",
-            "status": "PENDING"
-        }
-    }
+    Endpoints:
+    - POST /api/registration/student/ - Submit registration
+    - GET /api/registration/student/verify/ - Verify registration status
     """
     permission_classes = [AllowAny]
-    serializer_class = StudentRegistrationSerializer
 
-    def create(self, request, *args, **kwargs):
-        # Get organization from request data or URL
+    @action(detail=False, methods=['post'])
+    def submit(self, request):
+        """
+        POST /api/registration/student/
+
+        Submit student registration form (Public).
+        """
         org_code = request.data.get('org_code') or request.query_params.get('org_code')
 
         if not org_code:
@@ -1169,7 +883,7 @@ class StudentRegistrationSubmitAPIView(CreateAPIView):
                 'message': 'Invalid organization code'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(
+        serializer = StudentRegistrationSerializer(
             data=request.data,
             context={'organization': organization}
         )
@@ -1193,26 +907,13 @@ class StudentRegistrationSubmitAPIView(CreateAPIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'])
+    def verify(self, request):
+        """
+        GET /api/registration/student/verify/
 
-class StudentRegistrationVerifyAPIView(APIView):
-    """
-    GET /api/registration/student/verify/
-
-    Verify registration status (Public).
-
-    Query Parameters:
-        - registration_id: Registration UUID
-        - email: Registered email
-
-    Response (200):
-    {
-        "success": true,
-        "data": {...}
-    }
-    """
-    permission_classes = [AllowAny]
-
-    def get(self, request):
+        Verify registration status (Public).
+        """
         registration_id = request.query_params.get('registration_id')
         email = request.query_params.get('email')
 
@@ -1254,31 +955,36 @@ class StudentRegistrationVerifyAPIView(APIView):
 
 
 # =============================================================================
-# PENDING STUDENT REGISTRATION API VIEWS
+# PENDING STUDENT REGISTRATION VIEWSET
 # =============================================================================
 
-class PendingStudentListAPIView(ListAPIView):
+class PendingStudentViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    GET /api/pending/students/
+    ViewSet for pending student registrations.
 
-    List all pending student registrations.
-
-    Query Parameters:
-        - status: Filter by status (PENDING/APPROVED/REJECTED/INFO_REQUESTED)
-        - branch: Interested branch ID
-        - submission_date_from: Filter from date
-        - submission_date_to: Filter to date
-
-    Response (200):
-    {
-        "success": true,
-        "count": 25,
-        "results": [...]
-    }
+    Endpoints:
+    - GET /api/pending/students/ - List pending registrations
+    - GET /api/pending/students/{id}/ - Get registration details
+    - POST /api/pending/students/{id}/approve/ - Approve registration
+    - POST /api/pending/students/{id}/reject/ - Reject registration
+    - POST /api/pending/students/{id}/request-info/ - Request more info
     """
     permission_classes = [IsAuthenticated, CanApproveRegistrations]
-    serializer_class = PendingStudentListSerializer
     pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PendingStudentListSerializer
+        elif self.action == 'retrieve':
+            return PendingStudentDetailSerializer
+        elif self.action == 'approve':
+            return PendingStudentApproveSerializer
+        elif self.action == 'reject':
+            return PendingStudentRejectSerializer
+        elif self.action == 'request_info':
+            return PendingStudentRequestInfoSerializer
+        return PendingStudentListSerializer
 
     def get_queryset(self):
         organization = self.request.user.organization
@@ -1294,7 +1000,6 @@ class PendingStudentListAPIView(ListAPIView):
         if status_filter:
             queryset = queryset.filter(status=status_filter.upper())
         else:
-            # Default to pending only
             queryset = queryset.filter(status='PENDING')
 
         branch_filter = self.request.query_params.get('branch')
@@ -1327,33 +1032,6 @@ class PendingStudentListAPIView(ListAPIView):
             'results': response.data.get('results', [])
         })
 
-
-class PendingStudentDetailAPIView(RetrieveAPIView):
-    """
-    GET /api/pending/students/{id}/
-
-    Get complete pending registration details.
-
-    Response (200):
-    {
-        "success": true,
-        "data": {...}
-    }
-    """
-    permission_classes = [IsAuthenticated, CanApproveRegistrations]
-    serializer_class = PendingStudentDetailSerializer
-    lookup_field = 'id'
-
-    def get_queryset(self):
-        organization = self.request.user.organization
-        return StudentRegistration.objects.filter(
-            organization=organization
-        ).select_related(
-            'interested_branch',
-            'class_to_admit',
-            'reviewed_by'
-        )
-
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -1362,57 +1040,24 @@ class PendingStudentDetailAPIView(RetrieveAPIView):
             'data': serializer.data
         })
 
+    @action(detail=True, methods=['post'])
+    def approve(self, request, id=None):
+        """
+        POST /api/pending/students/{id}/approve/
 
-class PendingStudentApproveAPIView(APIView):
-    """
-    POST /api/pending/students/{id}/approve/
+        Approve registration and create student record.
+        """
+        registration = self.get_object()
 
-    Approve registration and create student record.
-
-    Request:
-    {
-        "branch_id": "uuid",
-        "class_id": "uuid",
-        "division_id": "uuid",
-        "category": "PERMANENT",
-        "has_siblings": false,
-        "notes": ""
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Student registration approved",
-        "data": {
-            "student_id": "uuid",
-            "admission_number": "WAKR0001",
-            "status": "ACTIVE"
-        }
-    }
-    """
-    permission_classes = [IsAuthenticated, CanApproveRegistrations]
-
-    def post(self, request, id):
-        organization = request.user.organization
-
-        try:
-            registration = StudentRegistration.objects.get(
-                id=id,
-                organization=organization,
-                status='PENDING'
-            )
-        except StudentRegistration.DoesNotExist:
+        if registration.status != 'PENDING':
             return Response({
                 'success': False,
-                'message': 'Registration not found or already processed'
-            }, status=status.HTTP_404_NOT_FOUND)
+                'message': 'Registration already processed'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = PendingStudentApproveSerializer(
             data=request.data,
-            context={
-                'request': request,
-                'registration': registration
-            }
+            context={'request': request, 'registration': registration}
         )
 
         if serializer.is_valid():
@@ -1433,41 +1078,20 @@ class PendingStudentApproveAPIView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'])
+    def reject(self, request, id=None):
+        """
+        POST /api/pending/students/{id}/reject/
 
-class PendingStudentRejectAPIView(APIView):
-    """
-    POST /api/pending/students/{id}/reject/
+        Reject registration.
+        """
+        registration = self.get_object()
 
-    Reject registration.
-
-    Request:
-    {
-        "rejection_reason": "..."
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Registration rejected",
-        "data": {...}
-    }
-    """
-    permission_classes = [IsAuthenticated, CanApproveRegistrations]
-
-    def post(self, request, id):
-        organization = request.user.organization
-
-        try:
-            registration = StudentRegistration.objects.get(
-                id=id,
-                organization=organization,
-                status='PENDING'
-            )
-        except StudentRegistration.DoesNotExist:
+        if registration.status != 'PENDING':
             return Response({
                 'success': False,
-                'message': 'Registration not found or already processed'
-            }, status=status.HTTP_404_NOT_FOUND)
+                'message': 'Registration already processed'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = PendingStudentRejectSerializer(
             registration,
@@ -1492,41 +1116,20 @@ class PendingStudentRejectAPIView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'], url_path='request-info')
+    def request_info(self, request, id=None):
+        """
+        POST /api/pending/students/{id}/request-info/
 
-class PendingStudentRequestInfoAPIView(APIView):
-    """
-    POST /api/pending/students/{id}/request-info/
+        Request additional information from parent.
+        """
+        registration = self.get_object()
 
-    Request additional information from parent.
-
-    Request:
-    {
-        "message": "Please submit..."
-    }
-
-    Response (200):
-    {
-        "success": true,
-        "message": "Information request sent",
-        "data": {...}
-    }
-    """
-    permission_classes = [IsAuthenticated, CanApproveRegistrations]
-
-    def post(self, request, id):
-        organization = request.user.organization
-
-        try:
-            registration = StudentRegistration.objects.get(
-                id=id,
-                organization=organization,
-                status__in=['PENDING', 'INFO_REQUESTED']
-            )
-        except StudentRegistration.DoesNotExist:
+        if registration.status not in ['PENDING', 'INFO_REQUESTED']:
             return Response({
                 'success': False,
-                'message': 'Registration not found or already processed'
-            }, status=status.HTTP_404_NOT_FOUND)
+                'message': 'Registration already processed'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = PendingStudentRequestInfoSerializer(
             registration,
@@ -1536,8 +1139,6 @@ class PendingStudentRequestInfoAPIView(APIView):
 
         if serializer.is_valid():
             registration = serializer.save()
-
-            # TODO: Send email notification to parent
 
             return Response({
                 'success': True,
@@ -1556,23 +1157,36 @@ class PendingStudentRequestInfoAPIView(APIView):
 
 
 # =============================================================================
-# UTILITY API VIEWS
+# UTILITY VIEWSETS
 # =============================================================================
 
-class BranchListAPIView(APIView):
+class SettingsViewSet(viewsets.GenericViewSet):
     """
-    GET /api/utilities/branches/
+    ViewSet for utility operations.
 
-    Get list of branches for the organization.
+    Endpoints:
+    - GET /api/utilities/branches/ - List branches
+    - GET /api/utilities/classes/ - List classes
+    - GET /api/utilities/divisions/ - List divisions
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
-    def get(self, request):
-        organization = request.user.organization
-        branches = Branch.objects.filter(
-            organization=organization,
-            is_active=True
-        ).order_by('name')
+    @action(detail=False, methods=['get'])
+    def branches(self, request):
+        """GET /api/utilities/branches/"""
+        if request.user.is_authenticated:
+            organization = request.user.organization
+            branches = Branch.objects.filter(
+                organization=organization,
+                is_active=True
+            ).order_by('name')
+        else:
+            org_code = request.GET.get('org_code')
+            branches = Branch.objects.filter(
+                organization__code=org_code,
+                is_active=True
+            ).order_by('name')
+
 
         serializer = BranchMinimalSerializer(branches, many=True)
         return Response({
@@ -1580,21 +1194,21 @@ class BranchListAPIView(APIView):
             'results': serializer.data
         })
 
-
-class ClassListAPIView(APIView):
-    """
-    GET /api/utilities/classes/
-
-    Get list of classes for the organization.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        organization = request.user.organization
-        classes = Class.objects.filter(
-            organization=organization,
-            is_active=True
-        ).order_by('display_order', 'name')
+    @action(detail=False, methods=['get'])
+    def classes(self, request):
+        """GET /api/utilities/classes/"""
+        if request.user.is_authenticated:
+            organization = request.user.organization
+            classes = Class.objects.filter(
+                organization=organization,
+                is_active=True
+            ).order_by('level', 'name')
+        else:
+            org_code = request.GET.get('org_code')
+            classes = Class.objects.filter(
+                organization__code=org_code,
+                is_active=True
+            ).order_by('level', 'name')
 
         serializer = ClassMinimalSerializer(classes, many=True)
         return Response({
@@ -1602,16 +1216,9 @@ class ClassListAPIView(APIView):
             'results': serializer.data
         })
 
-
-class DivisionListAPIView(APIView):
-    """
-    GET /api/utilities/divisions/
-
-    Get list of divisions for the organization.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
+    @action(detail=False, methods=['get'])
+    def divisions(self, request):
+        """GET /api/utilities/divisions/"""
         organization = request.user.organization
         divisions = Division.objects.filter(
             organization=organization,
@@ -1623,3 +1230,763 @@ class DivisionListAPIView(APIView):
             'success': True,
             'results': serializer.data
         })
+
+
+# =============================================================================
+# ACADEMIC YEAR VIEWSET
+# =============================================================================
+
+class AcademicYearViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for academic year management.
+
+    Endpoints:
+    - GET /api/academic-years/ - List academic years
+    - POST /api/academic-years/ - Create academic year
+    - GET /api/academic-years/{id}/ - Get academic year details
+    - PUT/PATCH /api/academic-years/{id}/ - Update academic year
+    - DELETE /api/academic-years/{id}/ - Delete academic year
+    - POST /api/academic-years/{id}/activate/ - Activate academic year
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AcademicYearListSerializer
+        elif self.action == 'retrieve':
+            return AcademicYearDetailSerializer
+        elif self.action == 'create':
+            return AcademicYearCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return AcademicYearUpdateSerializer
+        return AcademicYearListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        return AcademicYear.objects.filter(
+            organization=organization
+        ).order_by('-start_date')
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            academic_year = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Academic year created successfully',
+                'data': AcademicYearDetailSerializer(academic_year).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'Academic year creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            academic_year = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Academic year updated successfully',
+                'data': AcademicYearDetailSerializer(academic_year).data
+            })
+        return Response({
+            'success': False,
+            'message': 'Academic year update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check if there are enrollments in this academic year
+        if instance.student_enrollments.exists():
+            return Response({
+                'success': False,
+                'message': 'Cannot delete academic year with student enrollments'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        instance.delete()
+        return Response({
+            'success': True,
+            'message': 'Academic year deleted successfully'
+        })
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, id=None):
+        """POST /api/academic-years/{id}/activate/ - Activate academic year"""
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save()  # The model's save method handles deactivating others
+        return Response({
+            'success': True,
+            'message': 'Academic year activated successfully',
+            'data': AcademicYearDetailSerializer(instance).data
+        })
+
+
+# =============================================================================
+# BRANCH VIEWSET
+# =============================================================================
+
+class BranchViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for branch management.
+
+    Endpoints:
+    - GET /api/branches/ - List branches
+    - POST /api/branches/ - Create branch
+    - GET /api/branches/{id}/ - Get branch details
+    - PUT/PATCH /api/branches/{id}/ - Update branch
+    - DELETE /api/branches/{id}/ - Delete branch (soft delete)
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BranchListSerializer
+        elif self.action == 'retrieve':
+            return BranchDetailSerializer
+        elif self.action == 'create':
+            return BranchCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return BranchUpdateSerializer
+        return BranchListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        queryset = Branch.objects.filter(
+            organization=organization
+        ).select_related('head_teacher__userprofile').order_by('name')
+
+        # Apply filters
+        is_active = self.request.query_params.get('is_active', True)
+        print(is_active)
+        if is_active:
+            queryset = queryset.filter(is_active=True)
+        else:
+            queryset = queryset.filter(is_active=False)
+
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(code__icontains=search)
+            )
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            branch = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Branch created successfully',
+                'data': BranchDetailSerializer(branch).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'Branch creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            branch = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Branch updated successfully',
+                'data': BranchDetailSerializer(branch).data
+            })
+        return Response({
+            'success': False,
+            'message': 'Branch update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Soft delete - set is_active to False
+        instance.is_active = False
+        instance.save()
+        return Response({
+            'success': True,
+            'message': 'Branch deleted successfully'
+        })
+
+
+# =============================================================================
+# CLASS VIEWSET
+# =============================================================================
+
+class ClassViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for class management.
+
+    Endpoints:
+    - GET /api/classes/ - List classes
+    - POST /api/classes/ - Create class
+    - GET /api/classes/{id}/ - Get class details
+    - PUT/PATCH /api/classes/{id}/ - Update class
+    - DELETE /api/classes/{id}/ - Delete class (soft delete)
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ClassListSerializer
+        elif self.action == 'retrieve':
+            return ClassDetailSerializer
+        elif self.action == 'create':
+            return ClassCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return ClassUpdateSerializer
+        return ClassListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        queryset = Class.objects.filter(
+            organization=organization
+        ).order_by( 'level')
+
+        # Apply filters
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            class_obj = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Class created successfully',
+                'data': ClassDetailSerializer(class_obj).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'Class creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            class_obj = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Class updated successfully',
+                'data': ClassDetailSerializer(class_obj).data
+            })
+        return Response({
+            'success': False,
+            'message': 'Class update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check if there are enrollments in this class
+        if instance.enrolled_students.exists():
+            return Response({
+                'success': False,
+                'message': 'Cannot delete class with enrolled students'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # Soft delete
+        instance.is_active = False
+        instance.save()
+        return Response({
+            'success': True,
+            'message': 'Class deleted successfully'
+        })
+
+
+# =============================================================================
+# DIVISION VIEWSET
+# =============================================================================
+
+class DivisionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for division management.
+
+    Endpoints:
+    - GET /api/divisions/ - List divisions
+    - POST /api/divisions/ - Create division
+    - GET /api/divisions/{id}/ - Get division details
+    - PUT/PATCH /api/divisions/{id}/ - Update division
+    - DELETE /api/divisions/{id}/ - Delete division (soft delete)
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DivisionListSerializer
+        elif self.action == 'retrieve':
+            return DivisionDetailSerializer
+        elif self.action == 'create':
+            return DivisionCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return DivisionUpdateSerializer
+        return DivisionListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        queryset = Division.objects.filter(
+            organization=organization
+        ).order_by('name')
+
+        # Apply filters
+        is_active = self.request.query_params.get('is_active', True)
+        if is_active:
+            queryset = queryset.filter(is_active=True)
+        else:
+            queryset = queryset.filter(is_active=False)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            division = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Division created successfully',
+                'data': DivisionDetailSerializer(division).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'Division creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            division = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Division updated successfully',
+                'data': DivisionDetailSerializer(division).data
+            })
+        return Response({
+            'success': False,
+            'message': 'Division update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check if there are enrollments in this division
+        if instance.enrolled_students.exists():
+            return Response({
+                'success': False,
+                'message': 'Cannot delete division with enrolled students'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # Soft delete
+        instance.is_active = False
+        instance.save()
+        return Response({
+            'success': True,
+            'message': 'Division deleted successfully'
+        })
+
+
+# =============================================================================
+# STAFF VIEWSET
+# =============================================================================
+
+class StaffViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for staff management.
+
+    Endpoints:
+    - GET /api/staff/ - List staff members
+    - POST /api/staff/ - Create staff member
+    - GET /api/staff/{id}/ - Get staff details
+    - PUT/PATCH /api/staff/{id}/ - Update staff member
+    - DELETE /api/staff/{id}/ - Delete staff member (soft delete)
+    """
+    permission_classes = [IsAuthenticated, IsHeadTeacher]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return StaffListSerializer
+        elif self.action == 'retrieve':
+            return StaffDetailSerializer
+        elif self.action == 'create':
+            return StaffCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return StaffUpdateSerializer
+        return StaffListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        queryset = StaffProfile.objects.filter(
+            user__organization=organization
+        ).select_related(
+            'user__userprofile',
+            'branch'
+        ).order_by('staff_number')
+
+        # Apply filters
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter.upper())
+
+        category_filter = self.request.query_params.get('category')
+        if category_filter:
+            queryset = queryset.filter(category=category_filter.upper())
+
+        branch_filter = self.request.query_params.get('branch')
+        if branch_filter:
+            queryset = queryset.filter(branch_id=branch_filter)
+
+        user_type_filter = self.request.query_params.get('user_type')
+        if user_type_filter:
+            queryset = queryset.filter(user__user_type=user_type_filter.upper())
+
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(user__userprofile__full_name__icontains=search) |
+                Q(staff_number__icontains=search) |
+                Q(user__email__icontains=search)
+            )
+
+        # Role-based filtering
+        user_role = self.request.user.role
+        if user_role not in ['admin', 'chief_head_teacher']:
+            if hasattr(self.request.user, 'staffprofile') and self.request.user.staffprofile.branch:
+                queryset = queryset.filter(branch=self.request.user.staffprofile.branch)
+
+        return queryset
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAuthenticated(), IsAdmin()]
+        elif self.action == 'destroy':
+            return [IsAuthenticated(), IsAdmin()]
+        return super().get_permissions()
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            staff = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Staff member created successfully',
+                'data': {
+                    'id': str(staff.id),
+                    'staff_number': staff.staff_number,
+                    'name': staff.user.userprofile.full_name
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'Staff creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            staff = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Staff member updated successfully',
+                'data': {
+                    'id': str(staff.id),
+                    'staff_number': staff.staff_number,
+                    'name': staff.user.userprofile.full_name
+                }
+            })
+        return Response({
+            'success': False,
+            'message': 'Staff update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Soft delete
+        instance.status = 'INACTIVE'
+        instance.save()
+        instance.user.is_active = False
+        instance.user.save()
+        return Response({
+            'success': True,
+            'message': 'Staff member deleted successfully'
+        })
+
+
+# =============================================================================
+# SYSTEM SETTINGS VIEWSET
+# =============================================================================
+
+from main.models import SystemSetting
+
+
+class SystemSettingViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for system settings management.
+
+    Endpoints:
+    - GET /api/system-settings/ - List system settings
+    - POST /api/system-settings/ - Create system setting
+    - GET /api/system-settings/{id}/ - Get system setting details
+    - PUT/PATCH /api/system-settings/{id}/ - Update system setting
+    - DELETE /api/system-settings/{id}/ - Delete system setting
+    - GET /api/system-settings/by-key/{key}/ - Get setting by key
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = StudentPagination
+    lookup_field = 'id'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return SystemSettingListSerializer
+        elif self.action == 'retrieve' or self.action == 'by_key':
+            return SystemSettingDetailSerializer
+        elif self.action == 'create':
+            return SystemSettingCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return SystemSettingUpdateSerializer
+        return SystemSettingListSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        queryset = SystemSetting.objects.filter(
+            organization=organization
+        ).order_by('category', 'key')
+
+        # Apply filters
+        category_filter = self.request.query_params.get('category')
+        if category_filter:
+            queryset = queryset.filter(category=category_filter)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({
+            'success': True,
+            'count': response.data.get('count', 0),
+            'results': response.data.get('results', [])
+        })
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            setting = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'System setting created successfully',
+                'data': SystemSettingDetailSerializer(setting).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'System setting creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            setting = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'System setting updated successfully',
+                'data': SystemSettingDetailSerializer(setting).data
+            })
+        return Response({
+            'success': False,
+            'message': 'System setting update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response({
+            'success': True,
+            'message': 'System setting deleted successfully'
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-key/(?P<key>[^/.]+)')
+    def by_key(self, request, key=None):
+        """GET /api/system-settings/by-key/{key}/ - Get setting by key"""
+        organization = request.user.organization
+        try:
+            setting = SystemSetting.objects.get(organization=organization, key=key)
+            serializer = self.get_serializer(setting)
+            return Response({
+                'success': True,
+                'data': serializer.data
+            })
+        except SystemSetting.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'Setting with key "{key}" not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class UsersViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = UserAPISerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return User.objects.filter(organization=self.request.user.organization, is_active=True)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save(organization=request.user.organization)
+            return Response({
+                'success': True,
+                'message': 'User created successfully',
+                'data': UserAPISerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': 'User creation failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response({
+            'success': True,
+            'message': 'User deleted successfully'
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_password(self, request, *args, **kwargs):
+        user = self.get_object()
+        password = request.data.get('password')
+        try:
+            user.set_password(password)
+            user.save()
+            return Response({
+                'success': True,
+                'message': 'Password updated successfully'
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)

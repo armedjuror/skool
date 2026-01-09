@@ -65,9 +65,9 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'organization', 'head_teacher_name', 'contact_person', 'is_active']
+    list_display = ['name', 'code', 'organization', 'head_teacher_name', 'is_active']
     list_filter = ['organization', 'is_active', 'created_at']
-    search_fields = ['name', 'code', 'contact_person']
+    search_fields = ['name', 'code']
     readonly_fields = ['id', 'created_at', 'updated_at']
     autocomplete_fields = ['organization', 'head_teacher']
 
@@ -79,7 +79,7 @@ class BranchAdmin(admin.ModelAdmin):
             'fields': ('head_teacher',)
         }),
         ('Contact Information', {
-            'fields': ('contact_person', 'phone', 'email', 'address')
+            'fields': ('phone', 'email', 'address')
         }),
         ('System Info', {
             'fields': ('id', 'created_at', 'updated_at'),
@@ -147,16 +147,16 @@ class AcademicYearAdmin(admin.ModelAdmin):
 
 @admin.register(Class)
 class ClassAdmin(admin.ModelAdmin):
-    list_display = ['name', 'level', 'organization', 'display_order', 'is_active']
+    list_display = ['name', 'level', 'organization', 'is_active']
     list_filter = ['organization', 'is_active']
     search_fields = ['name', 'level']
     readonly_fields = ['id', 'created_at', 'updated_at']
     autocomplete_fields = ['organization']
-    ordering = ['organization', 'display_order']
+    ordering = ['organization', 'level']
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('organization', 'name', 'level', 'display_order', 'is_active')
+            'fields': ('organization', 'name', 'level', 'is_active')
         }),
         ('System Info', {
             'fields': ('id', 'created_at', 'updated_at'),

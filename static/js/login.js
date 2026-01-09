@@ -3,12 +3,6 @@
  */
 
 $(document).ready(function() {
-    // Check if already logged in
-    if (Utils.storage.get('auth_token')) {
-        window.location.href = '/dashboard';
-        return;
-    }
-
     // Handle login form submission
     $('#loginForm').on('submit', async function(e) {
         e.preventDefault();
@@ -23,26 +17,29 @@ $(document).ready(function() {
             const response = await $.ajax({
                 url: API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN),
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: API_CONFIG.getHeaders(false),  // No auth needed, but include CSRF
                 data: JSON.stringify({
                     email: email,
                     password: password,
                     remember: remember
-                })
+                }),
+                xhrFields: {
+                    withCredentials: true  // Important: Include cookies for session
+                }
             });
 
-            // Store auth token
+            // Store auth token and user info
             const { token, user } = response.data;
             Utils.storage.set('auth_token', token);
-            Utils.storage.set('user_role', user.role);
-            Utils.storage.set('user_name', `${user.first_name} ${user.last_name}`.trim());
             Utils.storage.set('user_id', user.id);
+            Utils.storage.set('user_role', user.role);
+            Utils.storage.set('org_code', user.organization.code);
 
             Utils.showToast(response.message || 'Login successful! Redirecting...', 'success');
 
             // Redirect to dashboard
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = response.data.next;
             }, 1000);
 
         } catch (error) {
