@@ -1,0 +1,495 @@
+{% extends 'main/layout.html' %}
+{% load static %}
+
+{% block page_title %}Attendance{% endblock %}
+
+{% block extra_css %}
+    <style>
+    #attendanceTabs .nav-link{
+        color: var(--primary-dark);
+    }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">Students Present Today</h6>
+                        <h3 class="mb-0" id="studentsPresentToday">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-check fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">Students Absent Today</h6>
+                        <h3 class="mb-0" id="studentsAbsentToday">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-times fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">Staff Present Today</h6>
+                        <h3 class="mb-0" id="staffPresentToday">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chalkboard-teacher fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-dark-50">Pending Leave Requests</h6>
+                        <h3 class="mb-0" id="pendingLeaves">0</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-minus fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs mb-4" id="attendanceTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#markAttendance">
+            <i class="fas fa-calendar-check"></i> Mark Attendance
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#studentAttendance">
+            <i class="fas fa-user-graduate"></i> Student Attendance
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#staffAttendance">
+            <i class="fas fa-chalkboard-teacher"></i> Staff Attendance
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#workingCalendar">
+            <i class="fas fa-calendar-alt"></i> Working Calendar
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#leaveRequests">
+            <i class="fas fa-calendar-minus"></i> Leave Requests
+        </a>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content">
+    <!-- Mark Attendance Tab -->
+    <div class="tab-pane fade show active" id="markAttendance">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Mark Attendance</h5>
+            </div>
+            <div class="card-body">
+                <form id="markAttendanceForm">
+                    <div class="row mb-4">
+                        <div class="col-md-2">
+                            <label class="form-label">Type *</label>
+                            <select class="form-select" id="attendanceType" required>
+                                <option value="STUDENT">Student</option>
+                                <option value="STAFF">Staff</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="attendanceDate" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Branch *</label>
+                            <select class="form-select" id="attendanceBranch" required>
+                                <option value="">Select Branch</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="classFilterDiv">
+                            <label class="form-label">Class *</label>
+                            <select class="form-select" id="attendanceClass" required>
+                                <option value="">Select Class</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="divisionFilterDiv">
+                            <label class="form-label">Division *</label>
+                            <select class="form-select" id="attendanceDivision" required>
+                                <option value="">Select Division</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Load
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="attendanceList">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-users fa-3x mb-3"></i>
+                        <p>Select filters and click Load to mark attendance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Attendance Tab -->
+    <div class="tab-pane fade" id="studentAttendance">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Student Attendance</h5>
+            </div>
+            <div class="card-body">
+                <form id="studentAttendanceFilterForm">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="studentAttBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Class</label>
+                            <select class="form-select" id="studentAttClass" name="class">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="studentAttFromDate" name="from_date">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="studentAttToDate" name="to_date">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="studentAttStatus" name="status">
+                                <option value="">All</option>
+                                <option value="PRESENT">Present</option>
+                                <option value="ABSENT">Absent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearStudentAttFilters">Clear</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-body">
+                <div id="studentAttendanceTable">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading attendance records...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Attendance Tab -->
+    <div class="tab-pane fade" id="staffAttendance">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Staff Attendance</h5>
+            </div>
+            <div class="card-body">
+                <form id="staffAttendanceFilterForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="staffAttBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="staffAttFromDate" name="from_date">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="staffAttToDate" name="to_date">
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearStaffAttFilters">Clear</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-body">
+                <div id="staffAttendanceTable">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading attendance records...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Working Calendar Tab -->
+    <div class="tab-pane fade" id="workingCalendar">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Working Day Calendar</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-2" onclick="Attendance.previousMonth()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="currentMonthYear" class="fw-bold"></span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="Attendance.nextMonth()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Branch</label>
+                        <select class="form-select" id="calendarBranch">
+                            <option value="">Select Branch</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="calendarContainer" class="calendar-container">
+                    <!-- Calendar will be rendered here -->
+                </div>
+                <div class="mt-3">
+                    <span class="badge bg-success me-2"><i class="fas fa-check"></i> Working Day</span>
+                    <span class="badge bg-danger me-2"><i class="fas fa-times"></i> Holiday</span>
+                    <span class="badge bg-secondary"><i class="fas fa-ban"></i> Weekend</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Requests Tab -->
+    <div class="tab-pane fade" id="leaveRequests">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-minus"></i> Leave Requests</h5>
+                <button class="btn btn-primary btn-sm" onclick="Attendance.showLeaveRequestModal()">
+                    <i class="fas fa-plus"></i> Apply for Leave
+                </button>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-pills mb-3" id="leaveStatusTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-status="PENDING">Pending</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-status="APPROVED">Approved</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-status="REJECTED">Rejected</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-status="">All</a>
+                    </li>
+                </ul>
+                <div id="leaveRequestsTable">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading leave requests...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Request Modal -->
+<div class="modal fade" id="leaveRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Apply for Leave</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="leaveRequestForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Leave Type *</label>
+                        <select class="form-select" id="leaveType" name="leave_type" required>
+                            <option value="SICK">Sick Leave</option>
+                            <option value="CASUAL">Casual Leave</option>
+                            <option value="EMERGENCY">Emergency Leave</option>
+                            <option value="ANNUAL">Annual Leave</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">From Date *</label>
+                            <input type="date" class="form-control" id="leaveFromDate" name="from_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">To Date *</label>
+                            <input type="date" class="form-control" id="leaveToDate" name="to_date" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason *</label>
+                        <textarea class="form-control" id="leaveReason" name="reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Review Leave Modal -->
+<div class="modal fade" id="reviewLeaveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Leave Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reviewLeaveBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="rejectLeaveBtn">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button type="button" class="btn btn-success" id="approveLeaveBtn">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Holiday Modal -->
+<div class="modal fade" id="holidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Set Holiday</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="holidayForm">
+                <div class="modal-body">
+                    <input type="hidden" id="holidayDate" name="date">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="text" class="form-control" id="holidayDateDisplay" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Holiday Reason</label>
+                        <input type="text" class="form-control" id="holidayReason" name="holiday_reason" placeholder="e.g., Public Holiday, Event...">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="isWorkingDay" name="is_working_day">
+                        <label class="form-check-label" for="isWorkingDay">Mark as Working Day</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+.calendar-header {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+.calendar-day {
+    text-align: center;
+    padding: 15px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.calendar-day:hover {
+    transform: scale(1.05);
+}
+.calendar-day.working {
+    background: #d4edda;
+    color: #155724;
+}
+.calendar-day.holiday {
+    background: #f8d7da;
+    color: #721c24;
+}
+.calendar-day.weekend {
+    background: #e2e3e5;
+    color: #6c757d;
+}
+.calendar-day.today {
+    border: 2px solid #007bff;
+}
+.calendar-day .day-number {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+.calendar-day .day-label {
+    font-size: 0.75em;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/attendance.js' %}"></script>
+{% endblock %}

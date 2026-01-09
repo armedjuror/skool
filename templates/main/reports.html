@@ -1,0 +1,415 @@
+{% extends 'main/layout.html' %}
+{% load static %}
+
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<!-- Report Selection -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Select Report</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('attendance')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-check fa-3x mb-3 text-primary"></i>
+                                <h5>Attendance Report</h5>
+                                <p class="text-muted mb-0">Student and staff attendance summary</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('leave')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-minus fa-3x mb-3 text-warning"></i>
+                                <h5>Leave Report</h5>
+                                <p class="text-muted mb-0">Branch-wise leave statistics</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('fee_due')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-money-bill-wave fa-3x mb-3 text-danger"></i>
+                                <h5>Fee Due Report</h5>
+                                <p class="text-muted mb-0">Pending fee dues by student/branch</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('fee_collection')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-cash-register fa-3x mb-3 text-success"></i>
+                                <h5>Fee Collection Report</h5>
+                                <p class="text-muted mb-0">Collection summary by period</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('student')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-user-graduate fa-3x mb-3 text-info"></i>
+                                <h5>Student Report</h5>
+                                <p class="text-muted mb-0">Student list by class/branch</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 report-card" onclick="Reports.selectReport('staff')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chalkboard-teacher fa-3x mb-3 text-secondary"></i>
+                                <h5>Staff Report</h5>
+                                <p class="text-muted mb-0">Staff list by branch/role</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Content Area -->
+<div id="reportContent" style="display: none;">
+    <!-- Attendance Report -->
+    <div id="attendanceReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Attendance Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('attendance')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="attendanceReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Report Type</label>
+                            <select class="form-select" id="attReportType" name="report_type">
+                                <option value="daily">Daily</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Entity Type</label>
+                            <select class="form-select" id="attEntityType" name="entity_type">
+                                <option value="student">Students</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="attBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="attFromDate" name="from_date">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="attToDate" name="to_date">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="attendanceReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Report -->
+    <div id="leaveReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-minus"></i> Leave Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('leave')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="leaveReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="leaveBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Leave Type</label>
+                            <select class="form-select" id="leaveType" name="leave_type">
+                                <option value="">All Types</option>
+                                <option value="SICK">Sick Leave</option>
+                                <option value="CASUAL">Casual Leave</option>
+                                <option value="EMERGENCY">Emergency Leave</option>
+                                <option value="ANNUAL">Annual Leave</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="leaveFromDate" name="from_date">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="leaveToDate" name="to_date">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="leaveReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Due Report -->
+    <div id="feeDueReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Fee Due Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('fee_due')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="feeDueReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="feedueBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Class</label>
+                            <select class="form-select" id="feedueClass" name="class">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fee Type</label>
+                            <select class="form-select" id="feedueFeeType" name="fee_type">
+                                <option value="">All Types</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="feeDueReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Collection Report -->
+    <div id="feeCollectionReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-cash-register"></i> Fee Collection Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('fee_collection')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="feeCollectionReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="collectionBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="collectionFromDate" name="from_date">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="collectionToDate" name="to_date">
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="feeCollectionReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Report -->
+    <div id="studentReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-user-graduate"></i> Student Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('student')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="studentReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="studentBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Class</label>
+                            <select class="form-select" id="studentClass" name="class">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="studentStatus" name="status">
+                                <option value="">All</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="studentReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Report -->
+    <div id="staffReport" class="report-section" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-chalkboard-teacher"></i> Staff Report</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="Reports.exportReport('staff')">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="staffReportForm" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" id="staffBranch" name="branch">
+                                <option value="">All Branches</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="staffRole" name="user_type">
+                                <option value="">All Roles</option>
+                                <option value="TEACHER">Teacher</option>
+                                <option value="HEAD_TEACHER">Head Teacher</option>
+                                <option value="ACCOUNTANT">Accountant</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="staffStatus" name="status">
+                                <option value="">All</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="staffReportData">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>Select filters and click Generate to view report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.report-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    border-color: var(--bs-primary);
+}
+.report-card.active {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+.summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+}
+.summary-card .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+.summary-card .stat-label {
+    opacity: 0.8;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/reports.js' %}"></script>
+{% endblock %}
