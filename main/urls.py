@@ -40,7 +40,7 @@ from main.views.web import (
     staff_list_view,
     fees_view,
     attendance_view,
-    reports_view,
+    reports_view, default_view,
 )
 
 router = DefaultRouter()
@@ -69,6 +69,7 @@ urlpatterns = [
     # ==========================================================================
 
     # Authentication
+    path('', default_view, name='home'),
     path('<str:org_code>/login/', login_view, name='login'),
     path('<str:org_code>/logout/', logout_view, name='logout'),
     path('forgot-password/', password_reset_request_view, name='password-reset-request'),

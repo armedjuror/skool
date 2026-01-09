@@ -14,6 +14,9 @@ from django.views.decorators.csrf import csrf_protect
 from main.models import Organization
 
 
+def default_view(request):
+    return redirect('/KIC/login/')
+
 @csrf_protect
 @require_http_methods(["GET", "POST"])
 def login_view(request, org_code):
