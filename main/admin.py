@@ -252,18 +252,23 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(StaffProfile)
 class StaffProfileAdmin(admin.ModelAdmin):
     list_display = ['staff_number', 'get_name', 'user_type', 'category', 'status',
-                    'branch', 'monthly_salary']
-    list_filter = ['status', 'category', 'branch', 'user__user_type']
+                    'get_branches', 'monthly_salary']
+    list_filter = ['status', 'category', 'branches', 'user__user_type']
     search_fields = ['staff_number', 'user__userprofile__full_name', 'user__email']
     readonly_fields = ['staff_number', 'created_at', 'updated_at']
-    autocomplete_fields = ['user', 'branch', 'assigned_head_teacher']
+    autocomplete_fields = ['user', 'assigned_head_teacher']
+    filter_horizontal = ['branches']
+
+    def get_branches(self, obj):
+        return ', '.join(obj.branches.values_list('name', flat=True)) or '-'
+    get_branches.short_description = 'Branches'
 
     fieldsets = (
         ('Staff Information', {
             'fields': ('user', 'staff_number', 'category', 'status')
         }),
         ('Assignment', {
-            'fields': ('branch', 'assigned_head_teacher')
+            'fields': ('branches', 'assigned_head_teacher')
         }),
         ('Compensation', {
             'fields': ('monthly_salary', 'other_allowances')

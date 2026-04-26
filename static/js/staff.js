@@ -19,7 +19,7 @@ const Staff = {
     },
 
     /**
-     * Load filter dropdown options
+     * Load filter dropdown options and branch checkboxes
      */
     loadFilterOptions: async function() {
         try {
@@ -30,9 +30,29 @@ const Staff = {
             });
 
             const branches = branchesResponse.results || branchesResponse.data || [];
+
+            // Populate branch filter dropdown
             branches.forEach(branch => {
-                $('#branchFilter, #branch').append(`<option value="${branch.id}">${branch.name}</option>`);
+                $('#branchFilter').append(`<option value="${branch.id}">${branch.name}</option>`);
             });
+
+            // Populate branch checkboxes in the form
+            if (branches.length === 0) {
+                $('#branchCheckboxes').html('<span class="text-muted small">No branches available</span>');
+            } else {
+                let checkboxHtml = '';
+                branches.forEach(branch => {
+                    checkboxHtml += `
+                        <div class="form-check">
+                            <input class="form-check-input branch-checkbox" type="checkbox"
+                                   name="branch_ids" value="${branch.id}" id="branchCb_${branch.id}">
+                            <label class="form-check-label" for="branchCb_${branch.id}">
+                                ${branch.name}
+                            </label>
+                        </div>`;
+                });
+                $('#branchCheckboxes').html(checkboxHtml);
+            }
 
         } catch (error) {
             console.error('Failed to load filter options:', error);
@@ -206,11 +226,16 @@ const Staff = {
             const staff = response.data || response;
             currentStaffId = staff.id;
 
+            // Detail serializer nests data under personal_info, employment_info, addresses
+            const personal = staff.personal_info || {};
+            const employment = staff.employment_info || {};
+            const branchNames = (employment.branches || []).map(b => b.name).join(', ') || '-';
+
             const modalBody = `
                 <div class="row">
                     <div class="col-md-3 text-center mb-3">
-                        ${staff.photo_url
-                            ? `<img src="${staff.photo_url}" class="img-fluid rounded" alt="${staff.name}">`
+                        ${personal.photo_url
+                            ? `<img src="${personal.photo_url}" class="img-fluid rounded" alt="${personal.name}">`
                             : `<div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 150px;">
                                    <i class="fas fa-user fa-3x"></i>
                                </div>`
@@ -225,13 +250,13 @@ const Staff = {
                             <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Staff Number:</strong> ${staff.staff_number}</p>
-                                    <p><strong>Full Name:</strong> ${staff.name}</p>
-                                    <p><strong>Email:</strong> ${staff.email}</p>
+                                    <p><strong>Full Name:</strong> ${personal.name}</p>
+                                    <p><strong>Email:</strong> ${personal.email}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Gender:</strong> ${staff.gender}</p>
-                                    <p><strong>Date of Birth:</strong> ${Utils.formatDate(staff.dob)}</p>
-                                    <p><strong>Mobile:</strong> ${staff.mobile}</p>
+                                    <p><strong>Gender:</strong> ${personal.gender}</p>
+                                    <p><strong>Date of Birth:</strong> ${Utils.formatDate(personal.dob)}</p>
+                                    <p><strong>Mobile:</strong> ${personal.mobile}</p>
                                 </div>
                             </div>
                         </div>
@@ -240,8 +265,8 @@ const Staff = {
                             <h6 class="detail-group-title">Employment Details</h6>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>Role:</strong> ${staff.user_type_display || staff.user_type}</p>
-                                    <p><strong>Branch:</strong> ${staff.branch_name || '-'}</p>
+                                    <p><strong>Role:</strong> ${employment.user_type_display || employment.user_type}</p>
+                                    <p><strong>Branch(es):</strong> ${branchNames}</p>
                                     <p><strong>Category:</strong> ${staff.category}</p>
                                 </div>
                                 <div class="col-md-6">
@@ -303,21 +328,35 @@ const Staff = {
             const staff = response.data || response;
             currentStaffId = staff.id;
 
+            // Detail serializer nests data: personal_info, employment_info, addresses
+            const personal = staff.personal_info || {};
+            const employment = staff.employment_info || {};
+            const addresses = staff.addresses || {};
+
             $('#staffModalTitle').text('Edit Staff Member');
             $('#staffFormSubmit').html('<i class="fas fa-save"></i> Update Staff');
             $('#staffId').val(staff.id);
 
-            // Populate form fields
-            $('#fullName').val(staff.name);
-            $('#email').val(staff.email);
-            $('#gender').val(staff.gender);
-            $('#dob').val(staff.dob);
-            $('#userType').val(staff.user_type);
-            $('#idCardType').val(staff.id_card_type);
-            $('#idCardNumber').val(staff.id_card_number);
-            $('#mobile').val(staff.mobile);
-            $('#whatsapp').val(staff.whatsapp);
-            $('#branch').val(staff.branch_id);
+            // Personal information
+            $('#fullName').val(personal.name);
+            $('#email').val(personal.email);
+            $('#gender').val(personal.gender);
+            $('#dob').val(personal.dob);
+            $('#idCardType').val(personal.id_type);
+            $('#idCardNumber').val(personal.id_number);
+            $('#mobile').val(personal.mobile);
+            $('#whatsapp').val(personal.whatsapp);
+
+            // Employment
+            $('#userType').val(employment.user_type);
+
+            // Populate branch checkboxes
+            const assignedBranchIds = employment.branch_ids || [];
+            $('.branch-checkbox').prop('checked', false);
+            assignedBranchIds.forEach(id => {
+                $(`#branchCheckboxes input[value="${id}"]`).prop('checked', true);
+            });
+
             $('#category').val(staff.category);
             $('#staffStatus').val(staff.status);
             $('#monthlySalary').val(staff.monthly_salary);
@@ -329,21 +368,19 @@ const Staff = {
             $('#notes').val(staff.notes);
 
             // Address fields
-            if (staff.qatar_address) {
-                $('#qatarPlace').val(staff.qatar_address.place);
-                $('#qatarBuildingNo').val(staff.qatar_address.building_no);
-                $('#qatarStreetNo').val(staff.qatar_address.street_no);
-                $('#qatarZoneNo').val(staff.qatar_address.zone_no);
-                $('#qatarLandmark').val(staff.qatar_address.landmark);
-            }
+            const qatar = addresses.qatar || {};
+            $('#qatarPlace').val(qatar.place);
+            $('#qatarBuildingNo').val(qatar.building_no);
+            $('#qatarStreetNo').val(qatar.street_no);
+            $('#qatarZoneNo').val(qatar.zone_no);
+            $('#qatarLandmark').val(qatar.landmark);
 
-            if (staff.india_address) {
-                $('#indiaState').val(staff.india_address.state);
-                $('#indiaDistrict').val(staff.india_address.district);
-                $('#indiaPanchayath').val(staff.india_address.panchayath);
-                $('#indiaPlace').val(staff.india_address.place);
-                $('#indiaHouseName').val(staff.india_address.house_name);
-            }
+            const india = addresses.india || {};
+            $('#indiaState').val(india.state);
+            $('#indiaDistrict').val(india.district);
+            $('#indiaPanchayath').val(india.panchayath);
+            $('#indiaPlace').val(india.place);
+            $('#indiaHouseName').val(india.house_name);
 
             // Allowances
             if (staff.other_allowances) {
@@ -373,32 +410,27 @@ const Staff = {
         Utils.showLoader();
 
         try {
-            const formData = Utils.serializeForm($('#staffForm'));
             const staffId = $('#staffId').val();
 
-            // Build allowances object
-            formData.other_allowances = {
+            // Use FormData so the photo file is included in the request
+            const fd = new FormData(document.getElementById('staffForm'));
+
+            // Branch IDs: append each selected value individually
+            // (FormData can't represent arrays natively; ListField in DRF reads repeated keys)
+            fd.delete('branch_ids');  // remove any stale value from form serialization
+            $('.branch-checkbox:checked').each(function() {
+                fd.append('branch_ids', $(this).val());
+            });
+
+            // other_allowances must be a JSON string because FormData is key-value only
+            fd.set('other_allowances', JSON.stringify({
                 transport: parseFloat($('#transportAllowance').val()) || 0,
                 food: parseFloat($('#foodAllowance').val()) || 0,
                 mobile: parseFloat($('#mobileAllowance').val()) || 0
-            };
+            }));
 
-            // Build address objects
-            formData.qatar_address = {
-                place: $('#qatarPlace').val(),
-                building_no: $('#qatarBuildingNo').val(),
-                street_no: $('#qatarStreetNo').val(),
-                zone_no: $('#qatarZoneNo').val(),
-                landmark: $('#qatarLandmark').val()
-            };
-
-            formData.india_address = {
-                state: $('#indiaState').val(),
-                district: $('#indiaDistrict').val(),
-                panchayath: $('#indiaPanchayath').val(),
-                place: $('#indiaPlace').val(),
-                house_name: $('#indiaHouseName').val()
-            };
+            // Address fields already have the correct flat names in the form
+            // (qatar_place, india_state, etc.) — FormData captures them automatically.
 
             let url, method;
             if (staffId) {
@@ -412,8 +444,10 @@ const Staff = {
             await $.ajax({
                 url: url,
                 method: method,
-                headers: API_CONFIG.getHeaders(),
-                data: JSON.stringify(formData)
+                headers: API_CONFIG.getHeaders(true, true),
+                data: fd,
+                processData: false,
+                contentType: false
             });
 
             Utils.showToast(`Staff ${staffId ? 'updated' : 'created'} successfully`, 'success');

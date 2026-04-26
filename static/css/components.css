@@ -267,6 +267,28 @@
     background: transparent;
 }
 
+/* Bootstrap nav-tabs override — sidebar .nav-link sets white color globally */
+.nav-tabs .nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: var(--transition-base);
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-main);
+    background: rgba(44, 62, 80, 0.05);
+    border-color: var(--border-color) var(--border-color) transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-main);
+    background: var(--bg-surface);
+    border-color: var(--border-color) var(--border-color) var(--bg-surface);
+    font-weight: 600;
+}
+
 /* Toast Notifications */
 #toastContainer,
 .toast-container {

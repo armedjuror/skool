@@ -42,3 +42,17 @@ from .dashboard_serializers import (
     RecentActivitySerializer,
     NotificationSerializer,
 )
+
+from .staff_registration_serializers import (
+    StaffRegistrationSerializer,
+    StaffRegistrationVerifySerializer,
+    PendingStaffListSerializer,
+    PendingStaffDetailSerializer,
+)
+
+from .upload_serializers import (
+    PresignedUploadRequestSerializer,
+    PresignedUploadResponseSerializer,
+    UploadConfirmationSerializer,
+    FileInfoSerializer,
+)

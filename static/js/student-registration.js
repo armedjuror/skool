@@ -13,6 +13,12 @@ const StudentRegistration = {
     totalSteps: 5,
     formData: {},
     photoFile: null,
+    docFiles: {
+        student_qid_front: null,
+        student_qid_back: null,
+        father_qid_front: null,
+        father_qid_back: null,
+    },
 
     init: function() {
         this.loadInitialData();
@@ -132,6 +138,20 @@ const StudentRegistration = {
             self.handlePhotoUpload(e);
         });
 
+        // Document uploads (QID/Passport)
+        $('#student_qid_front').on('change', function(e) {
+            self.handleDocUpload(e, 'student_qid_front', 'qidFrontPreviewBox', 'qidFrontError');
+        });
+        $('#student_qid_back').on('change', function(e) {
+            self.handleDocUpload(e, 'student_qid_back', 'qidBackPreviewBox', 'qidBackError');
+        });
+        $('#father_qid_front').on('change', function(e) {
+            self.handleDocUpload(e, 'father_qid_front', 'fatherQidFrontPreviewBox', 'fatherQidFrontError');
+        });
+        $('#father_qid_back').on('change', function(e) {
+            self.handleDocUpload(e, 'father_qid_back', 'fatherQidBackPreviewBox', 'fatherQidBackError');
+        });
+
         // Age calculation on DOB change
         $('#date_of_birth').on('change', function() {
             self.calculateAge();
@@ -225,11 +245,20 @@ const StudentRegistration = {
 
             // Special handling for file input
             if (field.attr('type') === 'file') {
-                if (!StudentRegistration.photoFile) {
-                    field.addClass('is-invalid');
+                const fieldName = field.attr('name');
+                let fileStored = false;
+                if (fieldName === 'student_photo') {
+                    fileStored = !!StudentRegistration.photoFile;
+                } else {
+                    fileStored = !!StudentRegistration.docFiles[fieldName];
+                }
+                if (!fileStored) {
+                    const previewBox = field.closest('.doc-upload-container, .photo-upload-container').find('.doc-preview-box, .photo-preview-box');
+                    previewBox.addClass('is-invalid');
                     isValid = false;
                 } else {
-                    field.removeClass('is-invalid').addClass('is-valid');
+                    const previewBox = field.closest('.doc-upload-container, .photo-upload-container').find('.doc-preview-box, .photo-preview-box');
+                    previewBox.removeClass('is-invalid');
                 }
             } else if (!StudentRegistration.validateField(field)) {
                 isValid = false;
@@ -373,6 +402,35 @@ const StudentRegistration = {
         }
     },
 
+    handleDocUpload: function(e, fileKey, previewBoxId, errorId) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            Utils.showToast('Please upload a JPG or PNG image', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            Utils.showToast('Image size should not exceed 5MB', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        this.docFiles[fileKey] = file;
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const previewBox = $('#' + previewBoxId);
+            previewBox.html(`<img src="${ev.target.result}" alt="${fileKey}">`);
+            previewBox.removeClass('is-invalid');
+            $('#' + errorId).hide();
+        };
+        reader.readAsDataURL(file);
+    },
+
     updateProgressBar: function() {
         // Update progress line fill
         const progress = ((this.currentStep - 1) / (this.totalSteps - 1)) * 100;
@@ -425,6 +483,14 @@ const StudentRegistration = {
             formData.append('photo', this.photoFile);
         }
 
+        // Student QID/Passport uploads
+        if (this.docFiles.student_qid_front) {
+            formData.append('student_qid_front', this.docFiles.student_qid_front);
+        }
+        if (this.docFiles.student_qid_back) {
+            formData.append('student_qid_back', this.docFiles.student_qid_back);
+        }
+
         // Section 2: Family Details
         formData.append('father_name', $('#father_name').val());
         formData.append('parent_mobile', $('#parent_mobile').val());
@@ -432,6 +498,15 @@ const StudentRegistration = {
         formData.append('email', $('#email').val());
         formData.append('mother_name', $('#mother_name').val());
         formData.append('siblings_details', $('#siblings_details').val() || '');
+        formData.append('father_id_card_number', $('#father_id_card_number').val() || '');
+
+        // Father's QID/Passport uploads
+        if (this.docFiles.father_qid_front) {
+            formData.append('father_qid_front', this.docFiles.father_qid_front);
+        }
+        if (this.docFiles.father_qid_back) {
+            formData.append('father_qid_back', this.docFiles.father_qid_back);
+        }
 
         // Section 3: Address in Qatar (as JSON object)
         const qatarAddress = {
@@ -461,6 +536,8 @@ const StudentRegistration = {
         formData.append('previous_madrasa', $('#previous_madrasa').val() || '');
         formData.append('tc_number', $('#tc_number').val() || '');
         formData.append('aadhar_number', $('#aadhar_number').val() || '');
+        formData.append('current_school_name', $('#current_school_name').val() || '');
+        formData.append('current_studying_class', $('#current_studying_class').val() || '');
 
         return formData;
     },

@@ -15,6 +15,7 @@ const Layout = {
         this.setupNavigation();
         this.setupLogout();
         this.updatePendingCount();
+        this.loadNotificationCount();
         this.filterMenuByRole();
     },
 
@@ -141,7 +142,8 @@ const Layout = {
                 headers: API_CONFIG.getHeaders()
             });
 
-            const pendingCount = (response.pending_students || 0) + (response.pending_staff || 0);
+            const registrations = (response.data || {}).registrations || {};
+            const pendingCount = (registrations.pending_students || 0) + (registrations.pending_staff || 0);
 
             if (pendingCount > 0) {
                 $('#pendingCount').text(pendingCount).show();
@@ -151,6 +153,32 @@ const Layout = {
 
         } catch (error) {
             console.error('Failed to load pending count:', error);
+            $('#pendingCount').hide();
+        }
+    },
+
+    /**
+     * Load notification count from API and update badge
+     */
+    loadNotificationCount: async function() {
+        try {
+            const response = await $.ajax({
+                url: API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.DASHBOARD.NOTIFICATIONS),
+                method: 'GET',
+                headers: API_CONFIG.getHeaders()
+            });
+
+            const unread = response.unread_count || 0;
+
+            if (unread > 0) {
+                $('.notification-badge').text(unread).show();
+            } else {
+                $('.notification-badge').hide();
+            }
+
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+            $('.notification-badge').hide();
         }
     },
 

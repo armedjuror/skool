@@ -391,7 +391,7 @@ class StudentCreateSerializer(serializers.Serializer):
         # Create User
         user = User.objects.create_user(
             email=validated_data['email'],
-            password=User.objects.make_random_password(),
+            password=__import__('secrets').token_urlsafe(16),
             organization=organization,
             user_type='STUDENT',
             is_active=True
@@ -673,12 +673,17 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             'id_card_type',
             'id_card_number',
             'photo',
+            'student_qid_front',
+            'student_qid_back',
             'father_name',
             'parent_mobile',
             'father_whatsapp',
             'email',
             'mother_name',
             'siblings_details',
+            'father_id_card_number',
+            'father_qid_front',
+            'father_qid_back',
             'qatar_address',
             'india_address',
             'class_to_admit',
@@ -687,6 +692,8 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             'previous_madrasa',
             'tc_number',
             'aadhar_number',
+            'current_school_name',
+            'current_studying_class',
         ]
 
     def validate_class_to_admit(self, value):
@@ -777,6 +784,10 @@ class PendingStudentDetailSerializer(serializers.ModelSerializer):
     interested_branch = BranchMinimalSerializer(read_only=True)
     class_to_admit = ClassMinimalSerializer(read_only=True)
     photo_url = serializers.SerializerMethodField()
+    student_qid_front_url = serializers.SerializerMethodField()
+    student_qid_back_url = serializers.SerializerMethodField()
+    father_qid_front_url = serializers.SerializerMethodField()
+    father_qid_back_url = serializers.SerializerMethodField()
     reviewed_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -791,12 +802,17 @@ class PendingStudentDetailSerializer(serializers.ModelSerializer):
             'id_card_type',
             'id_card_number',
             'photo_url',
+            'student_qid_front_url',
+            'student_qid_back_url',
             'father_name',
             'parent_mobile',
             'father_whatsapp',
             'email',
             'mother_name',
             'siblings_details',
+            'father_id_card_number',
+            'father_qid_front_url',
+            'father_qid_back_url',
             'qatar_address',
             'india_address',
             'class_to_admit',
@@ -805,6 +821,8 @@ class PendingStudentDetailSerializer(serializers.ModelSerializer):
             'previous_madrasa',
             'tc_number',
             'aadhar_number',
+            'current_school_name',
+            'current_studying_class',
             'status',
             'rejection_reason',
             'info_request_message',
@@ -815,6 +833,18 @@ class PendingStudentDetailSerializer(serializers.ModelSerializer):
 
     def get_photo_url(self, obj):
         return obj.photo.url if obj.photo else None
+
+    def get_student_qid_front_url(self, obj):
+        return obj.student_qid_front.url if obj.student_qid_front else None
+
+    def get_student_qid_back_url(self, obj):
+        return obj.student_qid_back.url if obj.student_qid_back else None
+
+    def get_father_qid_front_url(self, obj):
+        return obj.father_qid_front.url if obj.father_qid_front else None
+
+    def get_father_qid_back_url(self, obj):
+        return obj.father_qid_back.url if obj.father_qid_back else None
 
     def get_reviewed_by_name(self, obj):
         if obj.reviewed_by:
@@ -890,7 +920,7 @@ class PendingStudentApproveSerializer(serializers.Serializer):
         # Create User
         user = User.objects.create_user(
             email=registration.email,
-            password=User.objects.make_random_password(),
+            password=__import__('secrets').token_urlsafe(16),
             organization=organization,
             user_type='STUDENT',
             is_active=True

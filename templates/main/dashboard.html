@@ -56,28 +56,28 @@
             </div>
             <div class="card-body">
                 <div class="quick-actions">
-                    <div class="quick-action-card" onclick="window.location.href='/students'">
+                    <div class="quick-action-card" onclick="window.location.href='{% url 'students-list' org_code %}'">
                         <div class="quick-action-icon">
                             <i class="fas fa-user-plus"></i>
                         </div>
                         <div class="quick-action-label">Add Student</div>
                     </div>
 
-                    <div class="quick-action-card" onclick="window.location.href='/staff'">
+                    <div class="quick-action-card" onclick="window.location.href='{% url 'staff-list' org_code %}'">
                         <div class="quick-action-icon">
                             <i class="fas fa-user-tie"></i>
                         </div>
                         <div class="quick-action-label">Add Staff</div>
                     </div>
 
-                    <div class="quick-action-card" onclick="window.location.href='/fees'">
+                    <div class="quick-action-card" onclick="window.location.href='{% url 'fees' org_code %}'">
                         <div class="quick-action-icon">
                             <i class="fas fa-cash-register"></i>
                         </div>
                         <div class="quick-action-label">Collect Fee</div>
                     </div>
 
-                    <div class="quick-action-card" onclick="window.location.href='/attendance'">
+                    <div class="quick-action-card" onclick="window.location.href='{% url 'attendance' org_code %}'">
                         <div class="quick-action-icon">
                             <i class="fas fa-calendar-check"></i>
                         </div>

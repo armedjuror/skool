@@ -248,10 +248,11 @@
                         <div class="tab-pane fade" id="employmentInfo">
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <label for="branch" class="form-label">Branch *</label>
-                                    <select class="form-select" id="branch" name="branch" required>
-                                        <option value="">Select Branch</option>
-                                    </select>
+                                    <label class="form-label">Branches</label>
+                                    <div id="branchCheckboxes" class="border rounded p-2" style="max-height:140px; overflow-y:auto; min-height:44px;">
+                                        <span class="text-muted small">Loading branches...</span>
+                                    </div>
+                                    <div class="form-text">Select one or more branches</div>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label for="category" class="form-label">Category *</label>

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'storages',
 
     'main',
 ]
@@ -155,9 +156,59 @@ STATIC_URL = os.getenv('STATIC_URL', 'static/')
 STATIC_ROOT = os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Media files (User uploaded content)
-MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
-MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media'))
+# =============================================================================
+# AWS S3 STORAGE CONFIGURATION
+# =============================================================================
+
+# AWS Credentials (store in .env file)
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+
+# S3 Settings
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' if AWS_STORAGE_BUCKET_NAME else None
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',  # 1 day cache
+}
+AWS_DEFAULT_ACL = 'private'  # Files are private by default
+AWS_S3_FILE_OVERWRITE = False  # Don't overwrite files with same name
+AWS_QUERYSTRING_AUTH = True  # Use query string auth for private files
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+
+# Presigned URL expiration settings (in seconds)
+AWS_PRESIGNED_URL_EXPIRY = int(os.getenv('AWS_PRESIGNED_URL_EXPIRY', '3600'))  # 1 hour
+AWS_PRESIGNED_UPLOAD_EXPIRY = int(os.getenv('AWS_PRESIGNED_UPLOAD_EXPIRY', '900'))  # 15 minutes
+
+# File upload limits
+AWS_MAX_FILE_SIZE_MB = int(os.getenv('AWS_MAX_FILE_SIZE_MB', '10'))  # 10 MB default
+
+# Allowed file types by category
+AWS_ALLOWED_FILE_TYPES = {
+    'image': ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    'document': ['application/pdf', 'application/msword',
+                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                 'application/vnd.ms-excel',
+                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    'any': ['*'],
+}
+
+# Toggle S3 storage (set to True in production)
+USE_S3_STORAGE = os.getenv('USE_S3_STORAGE', 'False').lower() in ('1', 'true', 'yes')
+
+# =============================================================================
+# MEDIA FILES CONFIGURATION
+# =============================================================================
+
+if USE_S3_STORAGE and AWS_STORAGE_BUCKET_NAME:
+    # Use S3 for file storage
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+else:
+    # Local development storage
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
+    MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media'))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -191,3 +242,5 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000').split(',')

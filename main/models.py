@@ -497,6 +497,91 @@ class UserAddress(BaseModel):
         return f"{self.user.userprofile.full_name} - {self.get_address_type_display()}"
 
 
+class StaffRegistration(BaseModel):
+    """
+    Stores public staff registration form submissions.
+    Temporary records that get converted to StaffProfile upon approval.
+    """
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='staff_registrations'
+    )
+    submission_date = models.DateTimeField(auto_now_add=True)
+
+    # Personal Details
+    full_name = models.CharField(max_length=200)
+    gender = models.CharField(
+        max_length=10,
+        choices=[('Male', 'Male'), ('Female', 'Female')]
+    )
+    dob = models.DateField(verbose_name="Date of Birth")
+    id_card_type = models.CharField(
+        max_length=10,
+        choices=[('QID', 'Qatar ID'), ('PASSPORT', 'Passport')]
+    )
+    id_card_number = models.CharField(max_length=50)
+    photo = models.ImageField(
+        upload_to='staff_registrations/photos/%Y/%m/',
+        null=True, blank=True
+    )
+    qid_front = models.ImageField(
+        upload_to='staff_registrations/qid/%Y/%m/',
+        null=True, blank=True,
+        verbose_name="QID/Passport Front"
+    )
+    qid_back = models.ImageField(
+        upload_to='staff_registrations/qid/%Y/%m/',
+        null=True, blank=True,
+        verbose_name="QID/Passport Back"
+    )
+
+    # Contact Details
+    mobile = models.CharField(max_length=20)
+    whatsapp = models.CharField(max_length=20, null=True, blank=True)
+    email = models.EmailField()
+
+    # Addresses as JSON
+    qatar_address = models.JSONField(default=dict, blank=True)
+    india_address = models.JSONField(default=dict, blank=True)
+
+    # Academic & Other Details
+    religious_academic_details = models.TextField(null=True, blank=True)
+    academic_details = models.TextField(null=True, blank=True)
+    previous_institution = models.CharField(max_length=200, null=True, blank=True)
+    msr_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="MSR Number")
+    aadhar_number = models.CharField(max_length=12, null=True, blank=True)
+
+    # Status Tracking
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+        ('INFO_REQUESTED', 'Information Requested'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    rejection_reason = models.TextField(null=True, blank=True)
+    info_request_message = models.TextField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reviewed_staff_registrations'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'staff_registrations'
+        ordering = ['-submission_date']
+        indexes = [
+            models.Index(fields=['organization', 'status']),
+            models.Index(fields=['submission_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.full_name} - {self.get_status_display()}"
+
+
 class StaffProfile(BaseModel):
     """
     Staff-specific information. Only for staff members.
@@ -529,11 +614,9 @@ class StaffProfile(BaseModel):
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='INACTIVE')
 
-    # Assignment
-    branch = models.ForeignKey(
+    # Assignment - supports multiple branches
+    branches = models.ManyToManyField(
         Branch,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name='staff_members'
     )
@@ -578,7 +661,6 @@ class StaffProfile(BaseModel):
         indexes = [
             models.Index(fields=['staff_number']),
             models.Index(fields=['status']),
-            models.Index(fields=['branch']),
         ]
 
     def __str__(self):
@@ -788,6 +870,20 @@ class StudentRegistration(BaseModel):
         blank=True
     )
 
+    # Student QID/Passport Upload
+    student_qid_front = models.ImageField(
+        upload_to='registrations/qid/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Student QID/Passport Front"
+    )
+    student_qid_back = models.ImageField(
+        upload_to='registrations/qid/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Student QID/Passport Back"
+    )
+
     # Family Details
     father_name = models.CharField(max_length=200)
     parent_mobile = models.CharField(max_length=20)
@@ -795,6 +891,19 @@ class StudentRegistration(BaseModel):
     email = models.EmailField()
     mother_name = models.CharField(max_length=200)
     siblings_details = models.TextField(null=True, blank=True)
+    father_id_card_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="Father's QID/Passport Number")
+    father_qid_front = models.ImageField(
+        upload_to='registrations/father_qid/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Father QID/Passport Front"
+    )
+    father_qid_back = models.ImageField(
+        upload_to='registrations/father_qid/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Father QID/Passport Back"
+    )
 
     # Addresses stored as JSON for temporary storage
     qatar_address = models.JSONField(default=dict, blank=True)
@@ -823,6 +932,10 @@ class StudentRegistration(BaseModel):
         verbose_name="Transfer Certificate Number"
     )
     aadhar_number = models.CharField(max_length=12, null=True, blank=True)
+
+    # Current School Details
+    current_school_name = models.CharField(max_length=200, null=True, blank=True, verbose_name="Current Studying School Name")
+    current_studying_class = models.CharField(max_length=100, null=True, blank=True, verbose_name="Current Studying Class")
 
     # Status Tracking
     STATUS_CHOICES = [

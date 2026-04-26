@@ -30,11 +30,15 @@ const API_CONFIG = {
             SEARCH: '/api/students/search/',
         },
 
-        // Student Registration (Public)
+        // Registration (Public)
         REGISTRATION: {
             STUDENT: {
                 SUBMIT: '/api/registration/student/submit/',
                 VERIFY: '/api/registration/student/verify/',
+            },
+            STAFF: {
+                SUBMIT: '/api/registration/staff/submit/',
+                VERIFY: '/api/registration/staff/verify/',
             },
         },
 
@@ -217,6 +221,14 @@ const API_CONFIG = {
             BRANCHES: '/api/utilities/branches/',
             CLASSES: '/api/utilities/classes/',
             DIVISIONS: '/api/utilities/divisions/',
+        },
+
+        // S3 Upload Management
+        UPLOADS: {
+            PRESIGNED_URL: '/api/uploads/presigned-url/',
+            PUBLIC_PRESIGNED_URL: '/api/uploads/public-presigned-url/',
+            CONFIRM: '/api/uploads/confirm/',
+            INFO: '/api/uploads/info/',
         },
     },
 

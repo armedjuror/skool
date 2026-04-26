@@ -366,6 +366,41 @@ def student_registration_form_view(request, org_code=None):
 
     return render(request, 'main/student_registration.html', context)
 
+def staff_registration_form_view(request, org_code=None):
+    """
+    Public staff registration form
+
+    URL: /<org_code>/staff/register/
+    Template: main/staff_registration.html
+    """
+    if not org_code:
+        org_code = request.GET.get('org')
+
+    if not org_code:
+        return render(request, 'main/error.html', {
+            'status': 400,
+            'error_title': 'Organization Required',
+            'error_message': 'Please provide an organization code.'
+        }, status=400)
+
+    try:
+        organization = Organization.objects.get(code=org_code, is_active=True)
+    except Organization.DoesNotExist:
+        return render(request, 'main/error.html', {
+            'status': 404,
+            'error_title': 'Organization Not Found',
+            'error_message': f'The organization code "{org_code}" is invalid.'
+        }, status=404)
+
+    context = {
+        'organization': organization,
+        'org_code': org_code,
+        'page_title': f'Staff Registration - {organization.name}',
+    }
+
+    return render(request, 'main/staff_registration.html', context)
+
+
 def settings_view(request, org_code):
     """
     Settings page

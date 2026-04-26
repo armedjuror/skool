@@ -16,6 +16,7 @@ from main.views.api import (
     DashboardViewSet,
     StudentViewSet,
     StudentRegistrationViewSet,
+    StaffRegistrationViewSet,
     PendingStudentViewSet,
     SettingsViewSet,
     # CRUD ViewSets
@@ -26,6 +27,7 @@ from main.views.api import (
     StaffViewSet,
     SystemSettingViewSet, UsersViewSet,
 )
+from main.views.upload_views import S3UploadViewSet
 # Web Views
 from main.views.web import (
     login_view,
@@ -36,6 +38,7 @@ from main.views.web import (
     students_list_view,
     pending_registrations_view,
     student_registration_form_view,
+    staff_registration_form_view,
     settings_view,
     staff_list_view,
     fees_view,
@@ -50,6 +53,7 @@ router.register(r'auth', AuthViewSet, basename='auth')
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 router.register(r'students', StudentViewSet, basename='students')
 router.register(r'registration/student', StudentRegistrationViewSet, basename='registration')
+router.register(r'registration/staff', StaffRegistrationViewSet, basename='staff-registration')
 router.register(r'pending/students', PendingStudentViewSet, basename='pending-students')
 router.register(r'utilities', SettingsViewSet, basename='utilities')
 
@@ -61,9 +65,15 @@ router.register(r'divisions', DivisionViewSet, basename='divisions')
 router.register(r'staffs', StaffViewSet, basename='staff')
 router.register(r'users', UsersViewSet, basename='users')
 router.register(r'system-settings', SystemSettingViewSet, basename='system-settings')
+router.register(r'uploads', S3UploadViewSet, basename='uploads')
 
 
 urlpatterns = [
+    # ==========================================================================
+    # API VIEWS (REST Endpoints) — must come before wildcard web view patterns
+    # ==========================================================================
+    path('api/', include(router.urls)),
+
     # ==========================================================================
     # WEB VIEWS (HTML Pages)
     # ==========================================================================
@@ -85,8 +95,8 @@ urlpatterns = [
     path('<str:org_code>/registrations/', pending_registrations_view, name='pending-registrations'),
 
     # Public Registration Forms
-    path('register/student/', student_registration_form_view, name='student-registration-public'),
-    path('<str:org_code>/register/student/', student_registration_form_view, name='student-registration'),
+    path('<str:org_code>/students/register/', student_registration_form_view, name='student-registration'),
+    path('<str:org_code>/staff/register/', staff_registration_form_view, name='staff-registration'),
 
     # Staff Management
     path('<str:org_code>/staff/', staff_list_view, name='staff-list'),
@@ -102,10 +112,6 @@ urlpatterns = [
 
     # Settings
     path('<str:org_code>/settings/', settings_view, name='settings'),
-    # ==========================================================================
-    # API VIEWS (REST Endpoints)
-    # ==========================================================================
-    path('api/', include(router.urls)),
     # Authentication APIs
     # path('api/auth/login/', LoginAPIView.as_view(), name='api-login'),
     # path('api/auth/logout/', LogoutAPIView.as_view(), name='api-logout'),

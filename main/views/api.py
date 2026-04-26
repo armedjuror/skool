@@ -36,6 +36,7 @@ from main.models import (
     StudentRegistration,
     StudentEnrollment,
     StaffProfile,
+    StaffRegistration,
     FeeCollection,
     StudentFeeDue,
     StudentAttendance,
@@ -67,6 +68,11 @@ from main.serializers.student_serializers import (
     BranchMinimalSerializer,
     ClassMinimalSerializer,
     DivisionMinimalSerializer,
+)
+
+from main.serializers.staff_registration_serializers import (
+    StaffRegistrationSerializer,
+    StaffRegistrationVerifySerializer,
 )
 
 from main.serializers.settings_serializers import (
@@ -411,13 +417,13 @@ class DashboardViewSet(viewsets.GenericViewSet):
         staff_qs = StaffProfile.objects.filter(user__organization=organization)
 
         # Branch filtering for non-admin users
-        user_branch = None
+        user_branches = None
         if hasattr(request.user, 'staffprofile'):
-            user_branch = request.user.staffprofile.branch
+            user_branches = request.user.staffprofile.branches.all()
 
-        if user_role not in ['admin', 'chief_head_teacher'] and user_branch:
-            students_qs = students_qs.filter(branch=user_branch)
-            staff_qs = staff_qs.filter(branch=user_branch)
+        if user_role not in ['admin', 'chief_head_teacher'] and user_branches:
+            students_qs = students_qs.filter(branch__in=user_branches)
+            staff_qs = staff_qs.filter(branches__in=user_branches).distinct()
 
         # Student statistics
         students_data = {
@@ -454,8 +460,8 @@ class DashboardViewSet(viewsets.GenericViewSet):
             organization=organization,
             status='PENDING'
         )
-        if user_branch:
-            pending_students_qs = pending_students_qs.filter(interested_branch=user_branch)
+        if user_branches:
+            pending_students_qs = pending_students_qs.filter(interested_branch__in=user_branches)
 
         registrations_data = {
             'pending_students': pending_students_qs.count(),
@@ -479,9 +485,9 @@ class DashboardViewSet(viewsets.GenericViewSet):
             due_amount__gt=0
         )
 
-        if user_branch:
-            fees_collected_qs = fees_collected_qs.filter(student__branch=user_branch)
-            fees_due_qs = fees_due_qs.filter(student__branch=user_branch)
+        if user_branches:
+            fees_collected_qs = fees_collected_qs.filter(student__branch__in=user_branches)
+            fees_due_qs = fees_due_qs.filter(student__branch__in=user_branches)
 
         this_month_collection = fees_collected_qs.aggregate(
             total=Coalesce(Sum('total_amount'), Decimal('0'))
@@ -502,8 +508,8 @@ class DashboardViewSet(viewsets.GenericViewSet):
             organization=organization,
             date=today
         )
-        if user_branch:
-            student_attendance_today = student_attendance_today.filter(student__branch=user_branch)
+        if user_branches:
+            student_attendance_today = student_attendance_today.filter(student__branch__in=user_branches)
 
         present_students = student_attendance_today.filter(status='PRESENT').count()
         total_marked = student_attendance_today.count()
@@ -955,6 +961,101 @@ class StudentRegistrationViewSet(viewsets.GenericViewSet):
 
 
 # =============================================================================
+# STAFF REGISTRATION VIEWSET (PUBLIC)
+# =============================================================================
+
+class StaffRegistrationViewSet(viewsets.GenericViewSet):
+    """
+    ViewSet for public staff registration.
+
+    Endpoints:
+    - POST /api/registration/staff/submit/ - Submit registration
+    - GET  /api/registration/staff/verify/ - Verify registration status
+    """
+    permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['post'])
+    def submit(self, request):
+        org_code = request.data.get('org_code') or request.query_params.get('org_code')
+
+        if not org_code:
+            return Response({
+                'success': False,
+                'message': 'Organization code is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            organization = Organization.objects.get(code=org_code, is_active=True)
+        except Organization.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid organization code'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = StaffRegistrationSerializer(
+            data=request.data,
+            context={'organization': organization}
+        )
+
+        if serializer.is_valid():
+            registration = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Registration submitted successfully',
+                'data': {
+                    'registration_id': str(registration.id),
+                    'full_name': registration.full_name,
+                    'submission_date': registration.submission_date,
+                    'status': registration.status,
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({
+            'success': False,
+            'message': 'Registration failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def verify(self, request):
+        registration_id = request.query_params.get('registration_id')
+        email = request.query_params.get('email')
+
+        if not registration_id and not email:
+            return Response({
+                'success': False,
+                'message': 'Either registration_id or email is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if registration_id:
+                registration = StaffRegistration.objects.get(id=registration_id)
+            else:
+                registration = StaffRegistration.objects.filter(
+                    email=email
+                ).order_by('-submission_date').first()
+                if not registration:
+                    raise StaffRegistration.DoesNotExist()
+
+            return Response({
+                'success': True,
+                'data': {
+                    'registration_id': str(registration.id),
+                    'full_name': registration.full_name,
+                    'submission_date': registration.submission_date,
+                    'status': registration.status,
+                    'status_display': registration.get_status_display(),
+                }
+            })
+
+        except StaffRegistration.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Registration not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+# =============================================================================
 # PENDING STUDENT REGISTRATION VIEWSET
 # =============================================================================
 
@@ -1219,11 +1320,18 @@ class SettingsViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['get'])
     def divisions(self, request):
         """GET /api/utilities/divisions/"""
-        organization = request.user.organization
-        divisions = Division.objects.filter(
-            organization=organization,
-            is_active=True
-        ).order_by('name')
+        if request.user.is_authenticated:
+            organization = request.user.organization
+            divisions = Division.objects.filter(
+                organization=organization,
+                is_active=True
+            ).order_by('name')
+        else:
+            org_code = request.GET.get('org_code')
+            divisions = Division.objects.filter(
+                organization__code=org_code,
+                is_active=True
+            ).order_by('name')
 
         serializer = DivisionMinimalSerializer(divisions, many=True)
         return Response({
@@ -1709,7 +1817,8 @@ class StaffViewSet(viewsets.ModelViewSet):
             user__organization=organization
         ).select_related(
             'user__userprofile',
-            'branch'
+        ).prefetch_related(
+            'branches'
         ).order_by('staff_number')
 
         # Apply filters
@@ -1723,7 +1832,7 @@ class StaffViewSet(viewsets.ModelViewSet):
 
         branch_filter = self.request.query_params.get('branch')
         if branch_filter:
-            queryset = queryset.filter(branch_id=branch_filter)
+            queryset = queryset.filter(branches__id=branch_filter).distinct()
 
         user_type_filter = self.request.query_params.get('user_type')
         if user_type_filter:
@@ -1737,11 +1846,13 @@ class StaffViewSet(viewsets.ModelViewSet):
                 Q(user__email__icontains=search)
             )
 
-        # Role-based filtering
+        # Role-based filtering: non-admin users only see staff in their branches
         user_role = self.request.user.role
         if user_role not in ['admin', 'chief_head_teacher']:
-            if hasattr(self.request.user, 'staffprofile') and self.request.user.staffprofile.branch:
-                queryset = queryset.filter(branch=self.request.user.staffprofile.branch)
+            if hasattr(self.request.user, 'staffprofile'):
+                user_branches = self.request.user.staffprofile.branches.all()
+                if user_branches.exists():
+                    queryset = queryset.filter(branches__in=user_branches).distinct()
 
         return queryset
 

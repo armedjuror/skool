@@ -10,6 +10,8 @@ This module contains all serializers for settings-related operations:
 - System Settings CRUD
 """
 
+import json
+
 from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
@@ -387,13 +389,16 @@ class StaffListSerializer(serializers.ModelSerializer):
     user_type = serializers.SerializerMethodField()
     user_type_display = serializers.SerializerMethodField()
     branch_name = serializers.SerializerMethodField()
+    branch_names = serializers.SerializerMethodField()
+    branch_ids = serializers.SerializerMethodField()
     photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = StaffProfile
         fields = [
             'id', 'staff_number', 'name', 'email', 'user_type', 'user_type_display',
-            'category', 'status', 'branch_name', 'monthly_salary', 'photo_url', 'created_at'
+            'category', 'status', 'branch_name', 'branch_names', 'branch_ids',
+            'monthly_salary', 'photo_url', 'created_at'
         ]
 
     def get_name(self, obj):
@@ -412,7 +417,15 @@ class StaffListSerializer(serializers.ModelSerializer):
         return obj.user.get_user_type_display()
 
     def get_branch_name(self, obj):
-        return obj.branch.name if obj.branch else None
+        """Returns comma-separated branch names (for display in table)"""
+        names = [b.name for b in obj.branches.all()]
+        return ', '.join(names) if names else None
+
+    def get_branch_names(self, obj):
+        return [b.name for b in obj.branches.all()]
+
+    def get_branch_ids(self, obj):
+        return [str(b.id) for b in obj.branches.all()]
 
     def get_photo_url(self, obj):
         try:
@@ -462,11 +475,11 @@ class StaffDetailSerializer(serializers.ModelSerializer):
         return {
             'user_type': obj.user.user_type,
             'user_type_display': obj.user.get_user_type_display(),
-            'branch': {
-                'id': str(obj.branch.id),
-                'name': obj.branch.name,
-                'code': obj.branch.code
-            } if obj.branch else None,
+            'branches': [
+                {'id': str(b.id), 'name': b.name, 'code': b.code}
+                for b in obj.branches.all()
+            ],
+            'branch_ids': [str(b.id) for b in obj.branches.all()],
             'assigned_head_teacher': {
                 'id': str(obj.assigned_head_teacher.id),
                 'name': obj.assigned_head_teacher.userprofile.full_name
@@ -521,7 +534,12 @@ class StaffCreateSerializer(serializers.Serializer):
         ('ACCOUNTANT', 'Accountant'),
         ('OFFICE_STAFF', 'Office Staff'),
     ])
-    branch_id = serializers.UUIDField(required=False, allow_null=True)
+    branch_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list,
+        help_text="List of branch IDs to assign this staff member to"
+    )
     category = serializers.ChoiceField(choices=[('PERMANENT', 'Permanent'), ('TEMPORARY', 'Temporary')])
     status = serializers.ChoiceField(
         choices=[('ACTIVE', 'Active'), ('INACTIVE', 'Inactive')],
@@ -559,16 +577,28 @@ class StaffCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
-    def validate_branch_id(self, value):
-        """Validate branch exists and belongs to organization"""
-        if value:
-            request = self.context.get('request')
+    def validate_other_allowances(self, value):
+        """Parse JSON string when submitted as multipart/form-data"""
+        if isinstance(value, str):
             try:
-                branch = Branch.objects.get(id=value, organization=request.user.organization, is_active=True)
-                return branch
+                return json.loads(value)
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Invalid JSON format for other_allowances.")
+        return value
+
+    def validate_branch_ids(self, value):
+        """Validate all branches exist and belong to organization"""
+        if not value:
+            return []
+        request = self.context.get('request')
+        branches = []
+        for branch_id in value:
+            try:
+                branch = Branch.objects.get(id=branch_id, organization=request.user.organization, is_active=True)
+                branches.append(branch)
             except Branch.DoesNotExist:
-                raise serializers.ValidationError("Invalid branch.")
-        return None
+                raise serializers.ValidationError(f"Branch {branch_id} is invalid or does not belong to your organization.")
+        return branches
 
     @transaction.atomic
     def create(self, validated_data):
@@ -576,12 +606,12 @@ class StaffCreateSerializer(serializers.Serializer):
         request = self.context.get('request')
         organization = request.user.organization
 
-        branch = validated_data.pop('branch_id', None)
+        branches = validated_data.pop('branch_ids', [])
 
         # Create User
         user = User.objects.create_user(
             email=validated_data['email'],
-            password=User.objects.make_random_password(),
+            password=__import__('secrets').token_urlsafe(16),
             organization=organization,
             user_type=validated_data['user_type'],
             is_active=True,
@@ -604,7 +634,6 @@ class StaffCreateSerializer(serializers.Serializer):
         # Create StaffProfile (staff_number auto-generated)
         staff = StaffProfile.objects.create(
             user=user,
-            branch=branch,
             category=validated_data['category'],
             status=validated_data.get('status', 'ACTIVE'),
             monthly_salary=validated_data['monthly_salary'],
@@ -616,6 +645,10 @@ class StaffCreateSerializer(serializers.Serializer):
             aadhar_number=validated_data.get('aadhar_number'),
             notes=validated_data.get('notes'),
         )
+
+        # Assign branches (M2M)
+        if branches:
+            staff.branches.set(branches)
 
         # Create Qatar Address
         if any([validated_data.get('qatar_place'), validated_data.get('qatar_zone_no')]):
@@ -669,7 +702,11 @@ class StaffUpdateSerializer(serializers.Serializer):
         ('ACCOUNTANT', 'Accountant'),
         ('OFFICE_STAFF', 'Office Staff'),
     ], required=False)
-    branch_id = serializers.UUIDField(required=False, allow_null=True)
+    branch_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        help_text="List of branch IDs. Replaces all current branch assignments."
+    )
     category = serializers.ChoiceField(
         choices=[('PERMANENT', 'Permanent'), ('TEMPORARY', 'Temporary')],
         required=False
@@ -703,6 +740,15 @@ class StaffUpdateSerializer(serializers.Serializer):
     india_house_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
     india_contact = serializers.CharField(max_length=20, required=False, allow_blank=True)
 
+    def validate_other_allowances(self, value):
+        """Parse JSON string when submitted as multipart/form-data"""
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Invalid JSON format for other_allowances.")
+        return value
+
     @transaction.atomic
     def update(self, instance, validated_data):
         """Update staff with related records"""
@@ -735,23 +781,20 @@ class StaffUpdateSerializer(serializers.Serializer):
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
 
-        # Update branch if provided
-        if 'branch_id' in validated_data:
-            branch_id = validated_data['branch_id']
-            if branch_id:
-                try:
-                    branch = Branch.objects.get(
-                        id=branch_id,
-                        organization=request.user.organization,
-                        is_active=True
-                    )
-                    instance.branch = branch
-                except Branch.DoesNotExist:
-                    raise serializers.ValidationError({"branch_id": "Invalid branch."})
-            else:
-                instance.branch = None
-
         instance.save()
+
+        # Update branches (M2M) if provided — replaces all existing assignments
+        if 'branch_ids' in validated_data:
+            branch_ids = validated_data['branch_ids']
+            if branch_ids:
+                branches = Branch.objects.filter(
+                    id__in=branch_ids,
+                    organization=request.user.organization,
+                    is_active=True
+                )
+                instance.branches.set(branches)
+            else:
+                instance.branches.clear()
 
         # Update Addresses
         qatar_fields = ['qatar_place', 'qatar_landmark', 'qatar_building_no', 'qatar_street_no', 'qatar_zone_no']

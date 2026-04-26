@@ -1,14 +1,14 @@
 {% extends 'main/base.html' %}
 {% load static %}
 
-{% block page_title %}Student Registration - {{ organization.name }}{% endblock %}
+{% block page_title %}Staff Registration - {{ organization.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    body{
-        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-main) 100%);;
+    body {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-main) 100%);
     }
-    /* Registration Form Specific Styles */
+
     .registration-container {
         max-width: 900px;
         margin: 40px auto;
@@ -42,7 +42,7 @@
         font-size: 15px;
     }
 
-    /* Progress Bar Styles */
+    /* Progress Bar */
     .progress-container {
         background: var(--gray-50);
         padding: 30px 20px;
@@ -109,21 +109,10 @@
         color: white;
     }
 
-    .progress-step.completed .step-circle i {
-        display: block;
-    }
-
-    .step-circle span {
-        display: block;
-    }
-
-    .progress-step.completed .step-circle span {
-        display: none;
-    }
-
-    .step-circle i {
-        display: none;
-    }
+    .progress-step.completed .step-circle i { display: block; }
+    .step-circle span { display: block; }
+    .progress-step.completed .step-circle span { display: none; }
+    .step-circle i { display: none; }
 
     .step-label {
         font-size: 13px;
@@ -136,14 +125,10 @@
         font-weight: 600;
     }
 
-    /* Form Section Styles */
-    .form-body {
-        padding: 40px;
-    }
+    /* Form Sections */
+    .form-body { padding: 40px; }
 
-    .form-section {
-        display: none;
-    }
+    .form-section { display: none; }
 
     .form-section.active {
         display: block;
@@ -151,14 +136,8 @@
     }
 
     @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 
     .section-title {
@@ -177,10 +156,7 @@
         font-size: 14px;
     }
 
-    .form-label .required {
-        color: var(--danger);
-        margin-left: 3px;
-    }
+    .form-label .required { color: var(--danger); margin-left: 3px; }
 
     .form-control, .form-select {
         border: 1.5px solid var(--gray-300);
@@ -195,23 +171,13 @@
         box-shadow: 0 0 0 3px rgba(61, 112, 104, 0.1);
     }
 
-    .form-control.is-invalid, .form-select.is-invalid {
-        border-color: var(--danger);
-    }
+    .form-control.is-invalid, .form-select.is-invalid { border-color: var(--danger); }
+    .form-control.is-valid,   .form-select.is-valid   { border-color: var(--success); }
 
-    .form-control.is-valid, .form-select.is-valid {
-        border-color: var(--success);
-    }
+    .invalid-feedback, .valid-feedback { font-size: 12px; margin-top: 5px; }
 
-    .invalid-feedback, .valid-feedback {
-        font-size: 12px;
-        margin-top: 5px;
-    }
-
-    /* Photo Upload Styles */
-    .photo-upload-container {
-        text-align: center;
-    }
+    /* Photo Upload */
+    .photo-upload-container { text-align: center; }
 
     .photo-preview-box {
         width: 150px;
@@ -229,41 +195,17 @@
         margin: 0 auto;
     }
 
-    .photo-preview-box:hover {
-        border-color: var(--accent-emerald);
-        background: var(--gray-100);
-    }
+    .photo-preview-box:hover { border-color: var(--accent-emerald); background: var(--gray-100); }
+    .photo-preview-box img { width: 100%; height: 100%; object-fit: cover; }
 
-    .photo-preview-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+    .photo-placeholder { text-align: center; color: var(--gray-500); }
+    .photo-placeholder i { font-size: 40px; margin-bottom: 10px; display: block; }
+    .photo-placeholder p { margin: 0; font-size: 13px; }
 
-    .photo-placeholder {
-        text-align: center;
-        color: var(--gray-500);
-    }
+    #staff_photo { display: none; }
 
-    .photo-placeholder i {
-        font-size: 40px;
-        margin-bottom: 10px;
-        display: block;
-    }
-
-    .photo-placeholder p {
-        margin: 0;
-        font-size: 13px;
-    }
-
-    #student_photo {
-        display: none;
-    }
-
-    /* Document Upload Styles */
-    .doc-upload-container {
-        text-align: center;
-    }
+    /* Document Upload */
+    .doc-upload-container { text-align: center; }
 
     .doc-preview-box {
         width: 100%;
@@ -280,38 +222,15 @@
         overflow: hidden;
     }
 
-    .doc-preview-box:hover {
-        border-color: var(--accent-emerald);
-        background: var(--gray-100);
-    }
+    .doc-preview-box:hover { border-color: var(--accent-emerald); background: var(--gray-100); }
+    .doc-preview-box img { width: 100%; height: 100%; object-fit: contain; }
+    .doc-preview-box.is-invalid { border-color: var(--danger); }
 
-    .doc-preview-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
+    .doc-placeholder { text-align: center; color: var(--gray-500); }
+    .doc-placeholder i { font-size: 32px; margin-bottom: 8px; display: block; }
+    .doc-placeholder p { margin: 0; font-size: 12px; }
 
-    .doc-preview-box.is-invalid {
-        border-color: var(--danger);
-    }
-
-    .doc-placeholder {
-        text-align: center;
-        color: var(--gray-500);
-    }
-
-    .doc-placeholder i {
-        font-size: 32px;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .doc-placeholder p {
-        margin: 0;
-        font-size: 12px;
-    }
-
-    /* Navigation Buttons */
+    /* Navigation */
     .form-navigation {
         display: flex;
         justify-content: space-between;
@@ -320,51 +239,23 @@
         border-top: 1px solid var(--gray-200);
     }
 
-    .btn-nav {
-        padding: 12px 30px;
-        font-weight: 600;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-    }
+    .btn-nav { padding: 12px 30px; font-weight: 600; border-radius: 6px; transition: all 0.2s ease; }
 
-    .btn-prev {
-        background: white;
-        border: 2px solid var(--gray-300);
-        color: var(--gray-700);
-    }
-
-    .btn-prev:hover {
-        background: var(--gray-100);
-        border-color: var(--gray-400);
-    }
+    .btn-prev { background: white; border: 2px solid var(--gray-300); color: var(--gray-700); }
+    .btn-prev:hover { background: var(--gray-100); border-color: var(--gray-400); }
 
     .btn-next, .btn-submit {
         background: var(--accent-emerald);
         border: 2px solid var(--accent-emerald);
         color: white;
     }
+    .btn-next:hover, .btn-submit:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
 
-    .btn-next:hover, .btn-submit:hover {
-        background: var(--primary-dark);
-        border-color: var(--primary-dark);
-    }
+    .btn-submit { background: var(--accent-gold); border-color: var(--accent-gold); }
+    .btn-submit:hover { background: #b8941f; border-color: #b8941f; }
 
-    .btn-submit {
-        background: var(--accent-gold);
-        border-color: var(--accent-gold);
-    }
-
-    .btn-submit:hover {
-        background: #b8941f;
-        border-color: #b8941f;
-    }
-
-    /* Success Message */
-    .success-container {
-        display: none;
-        text-align: center;
-        padding: 60px 40px;
-    }
+    /* Success */
+    .success-container { display: none; text-align: center; padding: 60px 40px; }
 
     .success-icon {
         width: 80px;
@@ -376,67 +267,25 @@
         justify-content: center;
         margin-bottom: 20px;
     }
-
-    .success-icon i {
-        font-size: 40px;
-        color: white;
-    }
-
-    .success-container h3 {
-        color: var(--primary-dark);
-        margin-bottom: 15px;
-    }
-
-    .success-container p {
-        color: var(--gray-600);
-        font-size: 15px;
-    }
+    .success-icon i { font-size: 40px; color: white; }
+    .success-container h3 { color: var(--primary-dark); margin-bottom: 15px; }
+    .success-container p { color: var(--gray-600); font-size: 15px; }
 
     /* Responsive */
     @media (max-width: 768px) {
-        .registration-header {
-            padding: 20px;
-        }
-
-        .registration-header h2 {
-            font-size: 22px;
-        }
-
-        .form-body {
-            padding: 25px 20px;
-        }
-
-        .form-navigation {
-            padding: 20px;
-        }
-
-        .progress-steps {
-            flex-wrap: wrap;
-        }
-
-        .progress-step {
-            flex-basis: 33.33%;
-            margin-bottom: 20px;
-        }
-
-        .step-label {
-            font-size: 11px;
-        }
-
-        .step-circle {
-            width: 35px;
-            height: 35px;
-        }
-
-        .progress-line {
-            display: none;
-        }
+        .registration-header { padding: 20px; }
+        .registration-header h2 { font-size: 22px; }
+        .form-body { padding: 25px 20px; }
+        .form-navigation { padding: 20px; }
+        .progress-steps { flex-wrap: wrap; }
+        .progress-step { flex-basis: 33.33%; margin-bottom: 20px; }
+        .step-label { font-size: 11px; }
+        .step-circle { width: 35px; height: 35px; }
+        .progress-line { display: none; }
     }
 
     @media (max-width: 480px) {
-        .progress-step {
-            flex-basis: 50%;
-        }
+        .progress-step { flex-basis: 50%; }
     }
 </style>
 {% endblock %}
@@ -444,74 +293,71 @@
 {% block body %}
 <div class="registration-container">
     <div class="registration-card">
+
         <!-- Header -->
         <div class="registration-header">
-            <h2>Student Registration</h2>
+            <h2>Staff Registration</h2>
             <p>{{ organization.name }}</p>
         </div>
 
         <!-- Progress Bar -->
-        <div class="progress-container">
+        <div class="progress-container" id="progressContainer">
             <div class="progress-steps">
                 <div class="progress-line">
                     <div class="progress-line-fill" id="progressLineFill"></div>
                 </div>
+
                 <div class="progress-step active" data-step="1">
                     <div class="step-circle">
                         <span>1</span>
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="step-label">Personal Details</div>
+                    <div class="step-label">Personal</div>
                 </div>
+
                 <div class="progress-step" data-step="2">
                     <div class="step-circle">
                         <span>2</span>
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="step-label">Family Details</div>
+                    <div class="step-label">Contact</div>
                 </div>
+
                 <div class="progress-step" data-step="3">
                     <div class="step-circle">
                         <span>3</span>
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="step-label">Address in Qatar</div>
+                    <div class="step-label">Qatar Address</div>
                 </div>
+
                 <div class="progress-step" data-step="4">
                     <div class="step-circle">
                         <span>4</span>
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="step-label">Address in India</div>
+                    <div class="step-label">India Address</div>
                 </div>
+
                 <div class="progress-step" data-step="5">
                     <div class="step-circle">
                         <span>5</span>
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="step-label">Academic Details</div>
+                    <div class="step-label">Academic</div>
                 </div>
             </div>
         </div>
 
         <!-- Form -->
-        <form id="studentRegistrationForm" novalidate>
+        <form id="staffRegistrationForm" novalidate>
             <div class="form-body">
+
                 <!-- Section 1: Personal Details -->
                 <div class="form-section active" data-section="1">
                     <h3 class="section-title">Personal Details</h3>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Admission Type <span class="required">*</span></label>
-                            <select class="form-select" id="admission_type" name="admission_type" required>
-                                <option value="">Select Admission Type</option>
-                                <option value="NEW">New</option>
-                                <option value="EXISTING_UPDATE">Existing Update</option>
-                            </select>
-                            <div class="invalid-feedback">Please select admission type</div>
-                        </div>
-
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Gender <span class="required">*</span></label>
                             <select class="form-select" id="gender" name="gender" required>
@@ -520,38 +366,6 @@
                                 <option value="Female">Female</option>
                             </select>
                             <div class="invalid-feedback">Please select gender</div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Student Name (As per QID/Passport) <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="student_name" name="student_name"
-                               placeholder="Enter full name" required>
-                        <div class="invalid-feedback">Please enter student name</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Date of Birth <span class="required">*</span></label>
-                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
-                            <div class="invalid-feedback">Please enter date of birth</div>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Age</label>
-                            <input type="text" class="form-control" id="age" name="age" readonly>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Study Type <span class="required">*</span></label>
-                            <select class="form-select" id="study_type" name="study_type" required>
-                                <option value="">Select Study Type</option>
-                                <option value="PERMANENT">Permanent</option>
-                                <option value="TEMPORARY">Temporary</option>
-                            </select>
-                            <div class="invalid-feedback">Please select study type</div>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -566,14 +380,33 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Full Name (As per QID/Passport) <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="full_name" name="full_name"
+                               placeholder="Enter full name" required>
+                        <div class="invalid-feedback">Please enter full name</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth <span class="required">*</span></label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+                            <div class="invalid-feedback">Please enter date of birth</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Age</label>
+                            <input type="text" class="form-control" id="age" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">QID/Passport Number <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="id_number" name="id_number"
+                        <input type="text" class="form-control" id="id_card_number" name="id_card_number"
                                placeholder="Enter QID or Passport number" required>
                         <div class="invalid-feedback">Please enter QID/Passport number</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Upload Student Photo <span class="required">*</span></label>
+                        <label class="form-label">Upload Staff Photo <span class="required">*</span></label>
                         <div class="photo-upload-container">
                             <div class="photo-preview-box" id="photoPreviewBox">
                                 <div class="photo-placeholder">
@@ -581,127 +414,68 @@
                                     <p>Click to upload<br>photo</p>
                                 </div>
                             </div>
-                            <input type="file" id="student_photo" name="student_photo"
+                            <input type="file" id="staff_photo" name="staff_photo"
                                    accept="image/jpeg,image/png,image/jpg" required>
-                            <div class="invalid-feedback text-center mt-2">Please upload student photo (JPG or PNG)</div>
+                            <div class="invalid-feedback text-center mt-2">Please upload staff photo (JPG or PNG)</div>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Student QID/Passport - Front Side <span class="required">*</span></label>
+                            <label class="form-label">QID/Passport - Front Side <span class="required">*</span></label>
                             <div class="doc-upload-container">
-                                <div class="doc-preview-box" id="qidFrontPreviewBox" onclick="document.getElementById('student_qid_front').click()">
+                                <div class="doc-preview-box" id="qidFrontPreviewBox"
+                                     onclick="document.getElementById('qid_front').click()">
                                     <div class="doc-placeholder">
                                         <i class="fas fa-id-card"></i>
                                         <p>Click to upload<br>front side</p>
                                     </div>
                                 </div>
-                                <input type="file" id="student_qid_front" name="student_qid_front"
+                                <input type="file" id="qid_front" name="qid_front"
                                        accept="image/jpeg,image/png,image/jpg" required style="display:none;">
-                                <div class="invalid-feedback d-block" id="qidFrontError" style="display:none!important;">Please upload QID/Passport front side (JPG or PNG)</div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Student QID/Passport - Back Side <span class="required">*</span></label>
+                            <label class="form-label">QID/Passport - Back Side <span class="required">*</span></label>
                             <div class="doc-upload-container">
-                                <div class="doc-preview-box" id="qidBackPreviewBox" onclick="document.getElementById('student_qid_back').click()">
+                                <div class="doc-preview-box" id="qidBackPreviewBox"
+                                     onclick="document.getElementById('qid_back').click()">
                                     <div class="doc-placeholder">
                                         <i class="fas fa-id-card"></i>
                                         <p>Click to upload<br>back side</p>
                                     </div>
                                 </div>
-                                <input type="file" id="student_qid_back" name="student_qid_back"
+                                <input type="file" id="qid_back" name="qid_back"
                                        accept="image/jpeg,image/png,image/jpg" required style="display:none;">
-                                <div class="invalid-feedback d-block" id="qidBackError" style="display:none!important;">Please upload QID/Passport back side (JPG or PNG)</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Section 2: Family Details -->
+                <!-- Section 2: Contact Details -->
                 <div class="form-section" data-section="2">
-                    <h3 class="section-title">Family Details</h3>
-
-                    <div class="mb-3">
-                        <label class="form-label">Father's Name (As per QID/Passport) <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="father_name" name="father_name"
-                               placeholder="Enter father's full name" required>
-                        <div class="invalid-feedback">Please enter father's name</div>
-                    </div>
+                    <h3 class="section-title">Contact Details</h3>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Parent Mobile Number <span class="required">*</span></label>
-                            <input type="tel" class="form-control" id="parent_mobile" name="parent_mobile"
+                            <label class="form-label">Mobile Number <span class="required">*</span></label>
+                            <input type="tel" class="form-control" id="mobile" name="mobile"
                                    placeholder="e.g., 55123456" pattern="[0-9]{8,15}" required>
-                            <div class="invalid-feedback">Please enter valid mobile number (digits only)</div>
+                            <div class="invalid-feedback">Please enter a valid mobile number (digits only)</div>
                         </div>
-
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Father's WhatsApp Number <span class="required">*</span></label>
-                            <input type="tel" class="form-control" id="whatsapp_number" name="whatsapp_number"
-                                   placeholder="e.g., 55123456" pattern="[0-9]{8,15}" required>
-                            <div class="invalid-feedback">Please enter valid WhatsApp number (digits only)</div>
+                            <label class="form-label">WhatsApp Number</label>
+                            <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
+                                   placeholder="e.g., 55123456" pattern="[0-9]{8,15}">
+                            <div class="invalid-feedback">Please enter a valid WhatsApp number (digits only)</div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Email ID <span class="required">*</span></label>
+                        <label class="form-label">Email Address <span class="required">*</span></label>
                         <input type="email" class="form-control" id="email" name="email"
-                               placeholder="e.g., parent@example.com" required>
-                        <div class="invalid-feedback">Please enter valid email address</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Mother's Full Name <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="mother_name" name="mother_name"
-                               placeholder="Enter mother's full name" required>
-                        <div class="invalid-feedback">Please enter mother's name</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Siblings Details</label>
-                        <textarea class="form-control" id="siblings_details" name="siblings_details"
-                                  rows="3" placeholder="Enter details about siblings (optional)"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Father's QID/Passport Number <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="father_id_card_number" name="father_id_card_number"
-                               placeholder="Enter father's QID or Passport number" required>
-                        <div class="invalid-feedback">Please enter father's QID/Passport number</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Father's QID/Passport - Front Side <span class="required">*</span></label>
-                            <div class="doc-upload-container">
-                                <div class="doc-preview-box" id="fatherQidFrontPreviewBox" onclick="document.getElementById('father_qid_front').click()">
-                                    <div class="doc-placeholder">
-                                        <i class="fas fa-id-card"></i>
-                                        <p>Click to upload<br>front side</p>
-                                    </div>
-                                </div>
-                                <input type="file" id="father_qid_front" name="father_qid_front"
-                                       accept="image/jpeg,image/png,image/jpg" required style="display:none;">
-                                <div class="invalid-feedback d-block" id="fatherQidFrontError" style="display:none!important;">Please upload father's QID/Passport front side (JPG or PNG)</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Father's QID/Passport - Back Side <span class="required">*</span></label>
-                            <div class="doc-upload-container">
-                                <div class="doc-preview-box" id="fatherQidBackPreviewBox" onclick="document.getElementById('father_qid_back').click()">
-                                    <div class="doc-placeholder">
-                                        <i class="fas fa-id-card"></i>
-                                        <p>Click to upload<br>back side</p>
-                                    </div>
-                                </div>
-                                <input type="file" id="father_qid_back" name="father_qid_back"
-                                       accept="image/jpeg,image/png,image/jpg" required style="display:none;">
-                                <div class="invalid-feedback d-block" id="fatherQidBackError" style="display:none!important;">Please upload father's QID/Passport back side (JPG or PNG)</div>
-                            </div>
-                        </div>
+                               placeholder="e.g., staff@example.com" required>
+                        <div class="invalid-feedback">Please enter a valid email address</div>
                     </div>
                 </div>
 
@@ -730,14 +504,12 @@
                                    placeholder="e.g., 123" required>
                             <div class="invalid-feedback">Please enter building number</div>
                         </div>
-
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Street Number <span class="required">*</span></label>
                             <input type="number" class="form-control" id="street_number" name="street_number"
                                    placeholder="e.g., 45" required>
                             <div class="invalid-feedback">Please enter street number</div>
                         </div>
-
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Zone Number <span class="required">*</span></label>
                             <input type="number" class="form-control" id="zone_number" name="zone_number"
@@ -789,7 +561,6 @@
                             </select>
                             <div class="invalid-feedback">Please select state</div>
                         </div>
-
                         <div class="col-md-6 mb-3">
                             <label class="form-label">District <span class="required">*</span></label>
                             <input type="text" class="form-control" id="district_india" name="district_india"
@@ -811,7 +582,6 @@
                                    placeholder="Enter place name" required>
                             <div class="invalid-feedback">Please enter place name</div>
                         </div>
-
                         <div class="col-md-6 mb-3">
                             <label class="form-label">House Name <span class="required">*</span></label>
                             <input type="text" class="form-control" id="house_name" name="house_name"
@@ -824,123 +594,62 @@
                         <label class="form-label">Contact Number in India <span class="required">*</span></label>
                         <input type="tel" class="form-control" id="contact_india" name="contact_india"
                                placeholder="e.g., 9876543210" pattern="[0-9]{10,15}" required>
-                        <div class="invalid-feedback">Please enter valid contact number (digits only)</div>
+                        <div class="invalid-feedback">Please enter a valid contact number (digits only)</div>
                     </div>
                 </div>
 
-                <!-- Section 5: Academic Details -->
+                <!-- Section 5: Academic & Professional Details -->
                 <div class="form-section" data-section="5">
-                    <h3 class="section-title">Academic Details</h3>
+                    <h3 class="section-title">Academic &amp; Professional Details</h3>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Class to be Admitted <span class="required">*</span></label>
-                            <select class="form-select" id="class_admitted" name="class_admitted" required>
-                                <option value="">Select Class</option>
-                                <option value="I">Class I</option>
-                                <option value="II">Class II</option>
-                                <option value="III">Class III</option>
-                                <option value="IV">Class IV</option>
-                                <option value="V">Class V</option>
-                                <option value="VI">Class VI</option>
-                                <option value="VII">Class VII</option>
-                                <option value="VIII">Class VIII</option>
-                                <option value="IX">Class IX</option>
-                                <option value="X">Class X</option>
-                                <option value="XI">Class XI</option>
-                                <option value="XII">Class XII</option>
-                            </select>
-                            <div class="invalid-feedback">Please select class</div>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Interested Branch <span class="required">*</span></label>
-                            <select class="form-select" id="branch" name="branch" required>
-                                <option value="">Select Branch</option>
-                                <option value="Al Nabit English Madrassa">Al Nabit English Madrassa</option>
-                                <option value="New Salata Madrassa">New Salata Madrassa</option>
-                                <option value="Wakra Madrassa">Wakra Madrassa</option>
-                                <option value="Midmac Madrassa">Midmac Madrassa</option>
-                                <option value="Kananda Madrassa">Kananda Madrassa</option>
-                                <option value="Day Tuition">Day Tuition</option>
-                                <option value="Evening Tuition">Evening Tuition</option>
-                                <option value="Madina Khalifa Madrassa">Madina Khalifa Madrassa</option>
-                                <option value="Al Thumama Madrassa">Al Thumama Madrassa</option>
-                                <option value="AlKhore Madrassa">AlKhore Madrassa</option>
-                                <option value="Muaither Madrassa">Muaither Madrassa</option>
-                                <option value="Summer Camp">Summer Camp</option>
-                                <option value="Quran Hifz">Quran Hifz</option>
-                            </select>
-                            <div class="invalid-feedback">Please select branch</div>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Religious Academic Details</label>
+                        <textarea class="form-control" id="religious_academic_details"
+                                  name="religious_academic_details" rows="3"
+                                  placeholder="Describe your religious academic background (optional)"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Completed Classes</label>
-                        <select class="form-select" id="completed_classes" name="completed_classes">
-                            <option value="">Select Completed Class (Optional)</option>
-                            <option value="I">Class I</option>
-                            <option value="II">Class II</option>
-                            <option value="III">Class III</option>
-                            <option value="IV">Class IV</option>
-                            <option value="V">Class V</option>
-                            <option value="VI">Class VI</option>
-                            <option value="VII">Class VII</option>
-                            <option value="VIII">Class VIII</option>
-                            <option value="IX">Class IX</option>
-                            <option value="X">Class X</option>
-                            <option value="XI">Class XI</option>
-                            <option value="XII">Class XII</option>
-                        </select>
+                        <label class="form-label">Academic Details</label>
+                        <textarea class="form-control" id="academic_details" name="academic_details"
+                                  rows="3" placeholder="Describe your academic qualifications (optional)"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Previous Madrasa Name</label>
-                        <input type="text" class="form-control" id="previous_madrasa" name="previous_madrasa"
-                               placeholder="Enter previous madrasa name (optional)">
+                        <label class="form-label">Previous Institution / Madrasa</label>
+                        <input type="text" class="form-control" id="previous_institution"
+                               name="previous_institution"
+                               placeholder="Enter previous institution or madrasa name (optional)">
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">TC Number</label>
-                            <input type="text" class="form-control" id="tc_number" name="tc_number"
-                                   placeholder="Enter TC number (optional)">
+                            <label class="form-label">MSR Number</label>
+                            <input type="text" class="form-control" id="msr_number" name="msr_number"
+                                   placeholder="Enter MSR number (optional)">
                         </div>
-
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Aadhar Number</label>
                             <input type="text" class="form-control" id="aadhar_number" name="aadhar_number"
-                                   placeholder="Enter 12-digit Aadhar number (optional)" pattern="[0-9]{12}">
+                                   placeholder="Enter 12-digit Aadhar number (optional)"
+                                   pattern="[0-9]{12}">
                             <div class="invalid-feedback">Aadhar number must be 12 digits</div>
                         </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Current Studying School Name <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="current_school_name" name="current_school_name"
-                               placeholder="Enter current school name" required>
-                        <div class="invalid-feedback">Please enter current school name</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Current Studying Class <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="current_studying_class" name="current_studying_class"
-                               placeholder="Enter current class (e.g., Grade 5, Class V)" required>
-                        <div class="invalid-feedback">Please enter current studying class</div>
-                    </div>
                 </div>
+
             </div>
 
             <!-- Navigation Buttons -->
             <div class="form-navigation">
-                <button type="button" class="btn btn-nav btn-prev" id="prevBtn" style="display: none;">
+                <button type="button" class="btn btn-nav btn-prev" id="prevBtn" style="display:none;">
                     <i class="fas fa-arrow-left me-2"></i> Previous
                 </button>
                 <div></div>
                 <button type="button" class="btn btn-nav btn-next" id="nextBtn">
                     Next <i class="fas fa-arrow-right ms-2"></i>
                 </button>
-                <button type="submit" class="btn btn-nav btn-submit" id="submitBtn" style="display: none;">
+                <button type="submit" class="btn btn-nav btn-submit" id="submitBtn" style="display:none;">
                     <i class="fas fa-paper-plane me-2"></i> Submit Application
                 </button>
             </div>
@@ -952,18 +661,18 @@
                 <i class="fas fa-check"></i>
             </div>
             <h3>Registration Submitted Successfully!</h3>
-            <p>Thank you for registering with Kerala Islamic Centre.<br>
-               You will receive a confirmation email shortly.<br>
+            <p>Thank you for applying to {{ organization.name }}.<br>
                Our admin team will review your application and contact you.</p>
             <button type="button" class="btn btn-nav btn-next mt-4" onclick="location.reload()">
                 Submit Another Application
             </button>
         </div>
+
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-    <script>const ORG_CODE='{{ org_code }}';</script>
-    <script src="{% static 'js/student-registration.js' %}"></script>
+    <script>const ORG_CODE = '{{ org_code }}';</script>
+    <script src="{% static 'js/staff-registration.js' %}"></script>
 {% endblock %}
