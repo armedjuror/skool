@@ -1,6 +1,14 @@
 {% extends 'main/base.html' %}
 {% load static %}
 
+{% block title %}{{ organization.name }}{% endblock %}
+
+{% block favicon %}
+{% if organization.logo %}
+<link rel="icon" type="image/png" href="{{ organization.logo.url }}">
+{% endif %}
+{% endblock %}
+
 {% block body %}
 <div class="app-wrapper">
     <!-- Sidebar -->
