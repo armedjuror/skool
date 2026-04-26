@@ -201,12 +201,24 @@ USE_S3_STORAGE = os.getenv('USE_S3_STORAGE', 'False').lower() in ('1', 'true', '
 # =============================================================================
 
 if USE_S3_STORAGE and AWS_STORAGE_BUCKET_NAME:
-    # Use S3 for file storage
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 else:
-    # Local development storage
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
     MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
     MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media'))
 
